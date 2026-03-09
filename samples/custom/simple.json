@@ -1,0 +1,92 @@
+[
+  {
+    "id": 1,
+    "uri": "http://localhost:3000/api/users",
+    "method": "GET",
+    "statusCode": 200,
+    "statusMessage": "OK",
+    "startRequestTimestamp": 1704067200000,
+    "beginResponseTimestamp": 1704067200150,
+    "endResponseTimestamp": 1704067200200,
+    "threadId": "main",
+    "requestHeaders": {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer token123"
+    },
+    "responseHeaders": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "abc123"
+    },
+    "requestBodyPath": "request_body_1.json",
+    "responseBodyPath": "response_body_1.json",
+    "responseContentLength": 256
+  },
+  {
+    "id": 2,
+    "uri": "http://localhost:3000/api/users",
+    "method": "POST",
+    "statusCode": 201,
+    "statusMessage": "Created",
+    "startRequestTimestamp": 1704067200300,
+    "beginResponseTimestamp": 1704067200500,
+    "endResponseTimestamp": 1704067200800,
+    "threadId": "worker-1",
+    "requestHeaders": {
+      "Content-Type": "application/json"
+    },
+    "responseHeaders": {
+      "Content-Type": "application/json"
+    },
+    "requestBodyChunks": [
+      "{\"name\": \"John Doe\", \"email\": \"john@example.com\"}"
+    ],
+    "responseBodyChunks": [
+      "{\"id\": 2, \"name\": \"John Doe\", \"email\": \"john@example.com\", \"createdAt\": \"2024-01-01T00:00:00Z\"}"
+    ],
+    "responseContentLength": 95
+  },
+  {
+    "id": 3,
+    "uri": "http://localhost:3000/api/products/5",
+    "method": "PUT",
+    "statusCode": 400,
+    "statusMessage": "Bad Request",
+    "startRequestTimestamp": 1704067201000,
+    "beginResponseTimestamp": 1704067201100,
+    "endResponseTimestamp": 1704067201150,
+    "threadId": "main",
+    "requestHeaders": {
+      "Content-Type": "application/json"
+    },
+    "responseHeaders": {
+      "Content-Type": "application/json",
+      "X-Error-Code": "INVALID_INPUT"
+    }
+  },
+  {
+    "id": 4,
+    "uri": "http://localhost:3000/api/health",
+    "method": "GET",
+    "statusCode": 500,
+    "statusMessage": "Internal Server Error",
+    "startRequestTimestamp": 1704067202000,
+    "beginResponseTimestamp": 1704067202100,
+    "endResponseTimestamp": 1704067202500,
+    "threadId": "worker-2",
+    "requestHeaders": {},
+    "responseHeaders": {
+      "Content-Type": "text/plain"
+    }
+  },
+  {
+    "id": 5,
+    "uri": "http://localhost:3000/api/users/1",
+    "method": "DELETE",
+    "statusCode": 204,
+    "statusMessage": "No Content",
+    "startRequestTimestamp": 1704067203000,
+    "beginResponseTimestamp": 1704067203100,
+    "endResponseTimestamp": 1704067203150,
+    "threadId": "main"
+  }
+]

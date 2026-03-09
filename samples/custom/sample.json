@@ -1,0 +1,530 @@
+[
+  {
+    "id": 1,
+    "uri": "https://api.myshop.com/v1/auth/login",
+    "method": "POST",
+    "statusCode": 200,
+    "statusMessage": "OK",
+    "startRequestTimestamp": 1704067200000,
+    "beginResponseTimestamp": 1704067200150,
+    "endResponseTimestamp": 1704067200350,
+    "threadId": "main",
+    "requestHeaders": {
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    },
+    "responseHeaders": {
+      "Content-Type": "application/json",
+      "Set-Cookie": "session=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9; Path=/; HttpOnly",
+      "X-Request-Id": "req_8a7f3d2e1b"
+    },
+    "requestBodyChunks": [
+      "{\"email\": \"john.doe@example.com\", \"password\": \"********\", \"rememberMe\": true}"
+    ],
+    "responseBodyChunks": [
+      "{\"success\": true, \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c\", \"expiresIn\": 3600, \"user\": {\"id\": 42, \"name\": \"John Doe\", \"email\": \"john.doe@example.com\", \"role\": \"customer\"}}"
+    ],
+    "responseContentLength": 297
+  },
+  {
+    "id": 2,
+    "uri": "https://api.myshop.com/v1/users/me",
+    "method": "GET",
+    "statusCode": 200,
+    "statusMessage": "OK",
+    "startRequestTimestamp": 1704067200400,
+    "beginResponseTimestamp": 1704067200600,
+    "endResponseTimestamp": 1704067200750,
+    "threadId": "main",
+    "requestHeaders": {
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+      "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ"
+    },
+    "responseHeaders": {
+      "Content-Type": "application/json",
+      "Cache-Control": "no-cache, no-store, must-revalidate",
+      "X-Request-Id": "req_7b6c5d4e3f"
+    },
+    "responseBodyChunks": [
+      "{\"id\": 42, \"name\": \"John Doe\", \"email\": \"john.doe@example.com\", \"phone\": \"+1-555-123-4567\", \"createdAt\": \"2023-06-15T10:30:00Z\", \"avatarUrl\": \"https://cdn.myshop.com/avatars/user_42.jpg\", \"addresses\": [{\"type\": \"billing\", \"line1\": \"123 Main St\", \"city\": \"New York\", \"state\": \"NY\", \"zip\": \"10001\", \"country\": \"US\"}, {\"type\": \"shipping\", \"line1\": \"456 Oak Ave\", \"city\": \"Los Angeles\", \"state\": \"CA\", \"zip\": \"90001\", \"country\": \"US\"}]}"
+    ],
+    "responseContentLength": 432
+  },
+  {
+    "id": 3,
+    "uri": "https://api.myshop.com/v1/products?page=1&limit=20&sort=popular",
+    "method": "GET",
+    "statusCode": 200,
+    "statusMessage": "OK",
+    "startRequestTimestamp": 1704067200800,
+    "beginResponseTimestamp": 1704067201100,
+    "endResponseTimestamp": 1704067201800,
+    "threadId": "http-pool-1",
+    "requestHeaders": {
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+      "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ"
+    },
+    "responseHeaders": {
+      "Content-Type": "application/json",
+      "X-Total-Count": "156",
+      "X-Page": "1",
+      "X-Per-Page": "20",
+      "X-Request-Id": "req_6a5b4c3d2e"
+    },
+    "responseBodyChunks": [
+      "{\"products\": [{\"id\": 101, \"name\": \"Wireless Bluetooth Headphones\", \"price\": 79.99, \"currency\": \"USD\", \"image\": \"https://cdn.myshop.com/products/headphones.jpg\", \"rating\": 4.5, \"reviewCount\": 234}, {\"id\": 102, \"name\": \"Smart Watch Series 5\", \"price\": 299.99, \"currency\": \"USD\", \"image\": \"https://cdn.myshop.com/products/watch.jpg\", \"rating\": 4.7, \"reviewCount\": 567}, {\"id\": 103, \"name\": \"USB-C Charging Cable 6ft\", \"price\": 14.99, \"currency\": \"USD\", \"image\": \"https://cdn.myshop.com/products/cable.jpg\", \"rating\": 4.2, \"reviewCount\": 1234}, {\"id\": 104, \"name\": \"Laptop Stand Adjustable\", \"price\": 39.99, \"currency\": \"USD\", \"image\": \"https://cdn.myshop.com/products/stand.jpg\", \"rating\": 4.6, \"reviewCount\": 89}], \"total\": 156, \"page\": 1, \"perPage\": 20}"
+    ],
+    "responseContentLength": 752
+  },
+  {
+    "id": 4,
+    "uri": "https://api.myshop.com/v1/products/101",
+    "method": "GET",
+    "statusCode": 200,
+    "statusMessage": "OK",
+    "startRequestTimestamp": 1704067201900,
+    "beginResponseTimestamp": 1704067202200,
+    "endResponseTimestamp": 1704067202400,
+    "threadId": "http-pool-2",
+    "requestHeaders": {
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+      "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ"
+    },
+    "responseHeaders": {
+      "Content-Type": "application/json",
+      "Cache-Control": "public, max-age=3600",
+      "ETag": "\"101-v2.5\"",
+      "X-Request-Id": "req_5a4b3c2d1e"
+    },
+    "responseBodyChunks": [
+      "{\"id\": 101, \"name\": \"Wireless Bluetooth Headphones\", \"price\": 79.99, \"currency\": \"USD\", \"description\": \"Premium wireless headphones with active noise cancellation, 30-hour battery life, and premium sound quality.\", \"images\": [\"https://cdn.myshop.com/products/headphones_1.jpg\", \"https://cdn.myshop.com/products/headphones_2.jpg\", \"https://cdn.myshop.com/products/headphones_3.jpg\"], \"specifications\": {\"brand\": \"SoundMax\", \"model\": \"SM-500\", \"connectivity\": \"Bluetooth 5.0\", \"battery\": \"30 hours\", \"weight\": \"250g\"}, \"rating\": 4.5, \"reviewCount\": 234, \"inStock\": true, \"stockQuantity\": 45}"
+    ],
+    "responseContentLength": 589
+  },
+  {
+    "id": 5,
+    "uri": "https://cdn.myshop.com/images/products/headphones_1.jpg",
+    "method": "GET",
+    "statusCode": 200,
+    "statusMessage": "OK",
+    "startRequestTimestamp": 1704067202500,
+    "beginResponseTimestamp": 1704067202700,
+    "endResponseTimestamp": 1704067203100,
+    "threadId": "http-pool-1",
+    "requestHeaders": {
+      "Accept": "image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+      "Referer": "https://myshop.com/products/101"
+    },
+    "responseHeaders": {
+      "Content-Type": "image/jpeg",
+      "Content-Length": "45678",
+      "Cache-Control": "public, max-age=86400",
+      "ETag": "\"abc123def456\""
+    },
+    "responseContentLength": 834,
+    "responseBodyChunks": [
+      "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAVrAgAASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD5..."
+    ]
+  },
+  {
+    "id": 6,
+    "uri": "https://cdn.myshop.com/images/logo.svg",
+    "method": "GET",
+    "statusCode": 200,
+    "statusMessage": "OK",
+    "startRequestTimestamp": 1704067202600,
+    "beginResponseTimestamp": 1704067202750,
+    "endResponseTimestamp": 1704067202800,
+    "threadId": "http-pool-2",
+    "requestHeaders": {
+      "Accept": "image/svg+xml",
+      "Referer": "https://myshop.com/"
+    },
+    "responseHeaders": {
+      "Content-Type": "image/svg+xml",
+      "Cache-Control": "public, max-age=2592000"
+    },
+    "responseBodyChunks": [
+      "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60'><defs><linearGradient id='grad' x1='0%' y1='0%' x2='100%' y2='0%'><stop offset='0%' style='stop-color:#3b82f6;stop-opacity:1' /><stop offset='100%' style='stop-color:#10b981;stop-opacity:1' /></linearGradient></defs><rect x='0' y='0' width='200' height='60' rx='8' fill='#1e293b'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='Arial, sans-serif' font-weight='bold' font-size='24' fill='url(#grad)'>MYSHOP</text></svg>"
+    ],
+    "responseContentLength": 515
+  },
+  {
+    "id": 7,
+    "uri": "https://api.myshop.com/v1/cart",
+    "method": "GET",
+    "statusCode": 200,
+    "statusMessage": "OK",
+    "startRequestTimestamp": 1704067203200,
+    "beginResponseTimestamp": 1704067203400,
+    "endResponseTimestamp": 1704067203600,
+    "threadId": "main",
+    "requestHeaders": {
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+      "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ"
+    },
+    "responseHeaders": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_4a3b2c1d0e"
+    },
+    "responseBodyChunks": [
+      "{\"items\": [{\"productId\": 101, \"name\": \"Wireless Bluetooth Headphones\", \"quantity\": 1, \"price\": 79.99}, {\"productId\": 103, \"name\": \"USB-C Charging Cable 6ft\", \"quantity\": 2, \"price\": 14.99}], \"subtotal\": 109.97, \"tax\": 8.80, \"shipping\": 5.99, \"total\": 124.76, \"itemCount\": 3}"
+    ],
+    "responseContentLength": 274
+  },
+  {
+    "id": 8,
+    "uri": "https://api.myshop.com/v1/cart/items",
+    "method": "POST",
+    "statusCode": 201,
+    "statusMessage": "Created",
+    "startRequestTimestamp": 1704067203700,
+    "beginResponseTimestamp": 1704067203950,
+    "endResponseTimestamp": 1704067204200,
+    "threadId": "main",
+    "requestHeaders": {
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+      "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ"
+    },
+    "responseHeaders": {
+      "Content-Type": "application/json",
+      "Location": "/v1/cart/items/4",
+      "X-Request-Id": "req_3a2b1c0d9e"
+    },
+    "requestBodyChunks": [
+      "{\"productId\": 104, \"quantity\": 1}"
+    ],
+    "responseBodyChunks": [
+      "{\"success\": true, \"cartItemId\": 4, \"message\": \"Item added to cart\"}"
+    ],
+    "responseContentLength": 67
+  },
+  {
+    "id": 9,
+    "uri": "https://api.myshop.com/v1/orders",
+    "method": "POST",
+    "statusCode": 201,
+    "statusMessage": "Created",
+    "startRequestTimestamp": 1704067204300,
+    "beginResponseTimestamp": 1704067204800,
+    "endResponseTimestamp": 1704067205500,
+    "threadId": "main",
+    "requestHeaders": {
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+      "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ"
+    },
+    "responseHeaders": {
+      "Content-Type": "application/json",
+      "Location": "/v1/orders/ORD-2024-00142",
+      "X-Request-Id": "req_2a1b0c9d8e"
+    },
+    "requestBodyChunks": [
+      "{\"shippingAddress\": {\"line1\": \"456 Oak Ave\", \"city\": \"Los Angeles\", \"state\": \"CA\", \"zip\": \"90001\", \"country\": \"US\"}, \"paymentMethod\": \"credit_card\", \"paymentToken\": \"tok_visa_4242\"}"
+    ],
+    "responseBodyChunks": [
+      "{\"orderId\": \"ORD-2024-00142\", \"status\": \"confirmed\", \"createdAt\": \"2024-01-01T00:00:55Z\", \"estimatedDelivery\": \"2024-01-05T23:59:59Z\", \"items\": [{\"productId\": 101, \"name\": \"Wireless Bluetooth Headphones\", \"quantity\": 1, \"price\": 79.99}, {\"productId\": 103, \"name\": \"USB-C Charging Cable 6ft\", \"quantity\": 2, \"price\": 14.99}, {\"productId\": 104, \"name\": \"Laptop Stand Adjustable\", \"quantity\": 1, \"price\": 39.99}], \"subtotal\": 149.96, \"tax\": 12.00, \"shipping\": 5.99, \"total\": 167.95}"
+    ],
+    "responseContentLength": 479
+  },
+  {
+    "id": 10,
+    "uri": "https://api.myshop.com/v1/orders/ORD-2024-00142",
+    "method": "GET",
+    "statusCode": 200,
+    "statusMessage": "OK",
+    "startRequestTimestamp": 1704067205600,
+    "beginResponseTimestamp": 1704067205800,
+    "endResponseTimestamp": 1704067206000,
+    "threadId": "http-pool-1",
+    "requestHeaders": {
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+      "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ"
+    },
+    "responseHeaders": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_1a0b9c8d7e"
+    },
+    "responseBodyChunks": [
+      "{\"orderId\": \"ORD-2024-00142\", \"status\": \"shipped\", \"trackingNumber\": \"1Z999AA10123456784\", \"carrier\": \"UPS\", \"shippedAt\": \"2024-01-02T14:30:00Z\", \"estimatedDelivery\": \"2024-01-04T23:59:59Z\", \"trackingUrl\": \"https://www.ups.com/track?loc=en_US&tracknum=1Z999AA10123456784\"}"
+    ],
+    "responseContentLength": 272
+  },
+  {
+    "id": 11,
+    "uri": "https://api.myshop.com/v1/notifications",
+    "method": "GET",
+    "statusCode": 200,
+    "statusMessage": "OK",
+    "startRequestTimestamp": 1704067206100,
+    "beginResponseTimestamp": 1704067206300,
+    "endResponseTimestamp": 1704067206500,
+    "threadId": "http-pool-2",
+    "requestHeaders": {
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+      "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ"
+    },
+    "responseHeaders": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_0a9b8c7d6e"
+    },
+    "responseBodyChunks": [
+      "{\"notifications\": [{\"id\": 1, \"type\": \"order_shipped\", \"title\": \"Your order has shipped!\", \"message\": \"Order #ORD-2024-00142 is on its way\", \"read\": false, \"createdAt\": \"2024-01-02T14:30:00Z\"}, {\"id\": 2, \"type\": \"price_drop\", \"title\": \"Price dropped!\", \"message\": \"Wireless Bluetooth Headphones is now $59.99 (25% off)\", \"read\": false, \"createdAt\": \"2024-01-01T20:15:00Z\"}], \"unreadCount\": 2}"
+    ],
+    "responseContentLength": 391
+  },
+  {
+    "id": 12,
+    "uri": "https://api.myshop.com/v1/products/102/reviews",
+    "method": "GET",
+    "statusCode": 200,
+    "statusMessage": "OK",
+    "startRequestTimestamp": 1704067206600,
+    "beginResponseTimestamp": 1704067207000,
+    "endResponseTimestamp": 1704067207500,
+    "threadId": "http-pool-1",
+    "requestHeaders": {
+      "Content-Type": "application/json",
+      "Accept": "application/json"
+    },
+    "responseHeaders": {
+      "Content-Type": "application/xml",
+      "X-Request-Id": "req_9a8b7c6d5e"
+    },
+    "responseBodyChunks": [
+      "<?xml version=\"1.0\" encoding=\"UTF-8\"?><reviews><review><id>456</id><rating>5</rating><title>Amazing watch!</title><comment>Best smart watch I've ever owned. Battery lasts forever and the display is beautiful.</comment><author>Mike T.</author><date>2023-12-28</date></review><review><id>457</id><rating>4</rating><title>Great but pricey</title><comment>Solid build quality and great features. A bit expensive but worth it.</comment><author>Sarah L.</author><date>2023-12-25</date></review></reviews>"
+    ],
+    "responseContentLength": 498
+  },
+  {
+    "id": 14,
+    "uri": "https://myshop.com/styles/main.css",
+    "method": "GET",
+    "statusCode": 200,
+    "statusMessage": "OK",
+    "startRequestTimestamp": 1704067207600,
+    "beginResponseTimestamp": 1704067207700,
+    "endResponseTimestamp": 1704067207900,
+    "threadId": "static-assets",
+    "requestHeaders": {
+      "Accept": "text/css,*/*;q=0.1",
+      "Referer": "https://myshop.com/",
+      "If-None-Match": "\"abc123def\""
+    },
+    "responseHeaders": {
+      "Content-Type": "text/css",
+      "Content-Length": "45678",
+      "Cache-Control": "public, max-age=31536000",
+      "ETag": "\"abc123def\""
+    },
+    "responseBodyChunks": [
+      "/* Main Stylesheet */body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;background-color:#f8fafc;color:#1e293b}header{background:#fff;border-bottom:1px solid #e2e8f0;padding:1rem 2rem}.btn{background:#3b82f6;color:#fff;border:none;padding:0.5rem 1rem;border-radius:0.375rem;cursor:pointer}.btn:hover{background:#2563eb}.card{background:#fff;border-radius:0.5rem;box-shadow:0 1px 3px rgba(0,0,0,0.1);padding:1.5rem;margin-bottom:1rem}"
+    ],
+    "responseContentLength": 503
+  },
+  {
+    "id": 13,
+    "uri": "https://myshop.com/",
+    "method": "GET",
+    "statusCode": 200,
+    "statusMessage": "OK",
+    "startRequestTimestamp": 1704067207500,
+    "beginResponseTimestamp": 1704067207550,
+    "endResponseTimestamp": 1704067207900,
+    "threadId": "main",
+    "requestHeaders": {
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      "Accept-Language": "en-US,en;q=0.5"
+    },
+    "responseHeaders": {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "no-cache",
+      "X-Request-Id": "req_8a7b6c5d4e"
+    },
+    "responseBodyChunks": [
+      "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>MyShop - Premium Electronics</title><link rel=\"stylesheet\" href=\"/styles/main.css\"></head><body><header><div class=\"logo\">MyShop</div><nav><a href=\"/\">Home</a><a href=\"/products\">Products</a><a href=\"/cart\">Cart</a><a href=\"/account\">Account</a></nav></header><main><section class=\"hero\"><h1>Welcome to MyShop</h1><p>Your one-stop shop for premium electronics and accessories</p><a href=\"/products\" class=\"btn\">Shop Now</a></section><section class=\"featured\"><h2>Featured Products</h2><div class=\"product-grid\"><div class=\"product-card\"><img src=\"/images/products/headphones_1.jpg\" alt=\"Headphones\"><h3>Wireless Headphones</h3><p class=\"price\">$79.99</p></div><div class=\"product-card\"><img src=\"/images/products/watch.jpg\" alt=\"Smart Watch\"><h3>Smart Watch</h3><p class=\"price\">$299.99</p></div></div></section></main><footer><p>&copy; 2024 MyShop. All rights reserved.</p></footer><script src=\"/scripts/app.js\"></script></body></html>"
+    ],
+    "responseContentLength": 1072
+  },
+  {
+    "id": 15,
+    "uri": "https://myshop.com/scripts/app.js",
+    "method": "GET",
+    "statusCode": 200,
+    "statusMessage": "OK",
+    "startRequestTimestamp": 1704067207950,
+    "beginResponseTimestamp": 1704067208100,
+    "endResponseTimestamp": 1704067208700,
+    "threadId": "static-assets",
+    "requestHeaders": {
+      "Accept": "*/*",
+      "Referer": "https://myshop.com/",
+      "If-None-Match": "\"xyz789uvw\""
+    },
+    "responseHeaders": {
+      "Content-Type": "application/javascript",
+      "Content-Length": "123456",
+      "Cache-Control": "public, max-age=31536000",
+      "ETag": "\"xyz789uvw\""
+    },
+    "responseBodyChunks": [
+      "/** Main Application JavaScript */(function(){const API_BASE='https://api.myshop.com/v1';let authToken=null;function login(email,password){return fetch(API_BASE+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})}).then(r=>r.json())}function getProducts(page=1,limit=20){return fetch(API_BASE+'/products?page='+page+'&limit='+limit,{headers:{Authorization:'Bearer '+authToken}}).then(r=>r.json())}})();"
+    ],
+    "responseContentLength": 461
+  },
+  {
+    "id": 16,
+    "uri": "https://api.myshop.com/v1/search?q=headphones",
+    "method": "GET",
+    "statusCode": 200,
+    "statusMessage": "OK",
+    "startRequestTimestamp": 1704067208800,
+    "beginResponseTimestamp": 1704067209200,
+    "endResponseTimestamp": 1704067209800,
+    "threadId": "http-pool-2",
+    "requestHeaders": {
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+      "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ"
+    },
+    "responseHeaders": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_8a7b6c5d4e"
+    },
+    "responseBodyChunks": [
+      "{\"query\": \"headphones\", \"results\": [{\"id\": 101, \"name\": \"Wireless Bluetooth Headphones\", \"price\": 79.99, \"type\": \"product\"}, {\"id\": 201, \"name\": \"Wireless Earbuds Pro\", \"price\": 149.99, \"type\": \"product\"}, {\"id\": 105, \"name\": \"Over-Ear Studio Headphones\", \"price\": 199.99, \"type\": \"product\"}], \"total\": 3, \"suggestions\": [\"wireless headphones\", \"bluetooth headphones\"]}"
+    ],
+    "responseContentLength": 369
+  },
+  {
+    "id": 17,
+    "uri": "https://api.myshop.com/v1/wishlist",
+    "method": "GET",
+    "statusCode": 200,
+    "statusMessage": "OK",
+    "startRequestTimestamp": 1704067209900,
+    "beginResponseTimestamp": 1704067210100,
+    "endResponseTimestamp": 1704067210300,
+    "threadId": "main",
+    "requestHeaders": {
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+      "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ"
+    },
+    "responseHeaders": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_7a6b5c4d3e"
+    },
+    "responseBodyChunks": [
+      "{\"items\": [{\"productId\": 102, \"name\": \"Smart Watch Series 5\", \"price\": 299.99, \"addedAt\": \"2023-12-20T10:00:00Z\"}, {\"productId\": 201, \"name\": \"Wireless Earbuds Pro\", \"price\": 149.99, \"addedAt\": \"2023-12-22T15:30:00Z\"}], \"count\": 2}"
+    ],
+    "responseContentLength": 231
+  },
+  {
+    "id": 18,
+    "uri": "https://api.myshop.com/v1/categories",
+    "method": "GET",
+    "statusCode": 200,
+    "statusMessage": "OK",
+    "startRequestTimestamp": 1704067210400,
+    "beginResponseTimestamp": 1704067210600,
+    "endResponseTimestamp": 1704067210800,
+    "threadId": "http-pool-1",
+    "requestHeaders": {
+      "Accept": "application/json"
+    },
+    "responseHeaders": {
+      "Content-Type": "application/json",
+      "Cache-Control": "public, max-age=3600",
+      "X-Request-Id": "req_6a5b4c3d2e"
+    },
+    "responseBodyChunks": [
+      "{\"categories\": [{\"id\": 1, \"name\": \"Electronics\", \"slug\": \"electronics\", \"icon\": \"laptop\", \"productCount\": 45}, {\"id\": 2, \"name\": \"Accessories\", \"slug\": \"accessories\", \"icon\": \"headphones\", \"productCount\": 32}, {\"id\": 3, \"name\": \"Wearables\", \"slug\": \"wearables\", \"icon\": \"watch\", \"productCount\": 18}, {\"id\": 4, \"name\": \"Cables & Chargers\", \"slug\": \"cables-chargers\", \"icon\": \"usb\", \"productCount\": 56}]}"
+    ],
+    "responseContentLength": 402
+  },
+  {
+    "id": 19,
+    "uri": "https://api.myshop.com/v1/users/me/settings",
+    "method": "PUT",
+    "statusCode": 200,
+    "statusMessage": "OK",
+    "startRequestTimestamp": 1704067210900,
+    "beginResponseTimestamp": 1704067211200,
+    "endResponseTimestamp": 1704067211500,
+    "threadId": "main",
+    "requestHeaders": {
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+      "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ"
+    },
+    "responseHeaders": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_5a4b3c2d1e"
+    },
+    "requestBodyChunks": [
+      "{\"notifications\": {\"email\": true, \"sms\": false, \"push\": true}, \"privacy\": {\"showProfile\": true, \"showActivity\": false}}"
+    ],
+    "responseBodyChunks": [
+      "{\"success\": true, \"message\": \"Settings updated successfully\"}"
+    ],
+    "responseContentLength": 61
+  },
+  {
+    "id": 20,
+    "uri": "https://api.myshop.com/v1/messages/support",
+    "method": "GET",
+    "statusCode": 200,
+    "statusMessage": "OK",
+    "startRequestTimestamp": 1704067211600,
+    "beginResponseTimestamp": 1704067211800,
+    "endResponseTimestamp": 1704067212000,
+    "threadId": "http-pool-2",
+    "requestHeaders": {
+      "Accept": "application/json",
+      "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ"
+    },
+    "responseHeaders": {
+      "Content-Type": "text/plain",
+      "X-Request-Id": "req_4a3b2c1d0e"
+    },
+    "responseBodyChunks": [
+      "Welcome to MyShop Customer Support! How can we help you today?"
+    ],
+    "responseContentLength": 62
+  },
+  {
+    "id": 21,
+    "uri": "https://api.myshop.com/v1/auth/logout",
+    "method": "POST",
+    "statusCode": 200,
+    "statusMessage": "OK",
+    "startRequestTimestamp": 1704067212100,
+    "beginResponseTimestamp": 1704067212250,
+    "endResponseTimestamp": 1704067212400,
+    "threadId": "main",
+    "requestHeaders": {
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+      "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ"
+    },
+    "responseHeaders": {
+      "Content-Type": "application/json",
+      "Set-Cookie": "session=; Path=/; HttpOnly; Max-Age=0",
+      "X-Request-Id": "req_3a2b1c0d9e"
+    },
+    "responseBodyChunks": [
+      "{\"success\": true, \"message\": \"Logged out successfully\"}"
+    ],
+    "responseContentLength": 55
+  }
+]
