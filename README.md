@@ -23,6 +23,7 @@ That's it. Everything runs client-side in a single HTML file.
 
 This upgraded version includes several advanced features over the original:
 
+- **AI Chat Assistant** ✨ — Ask an AI to analyze your HAR profile! Supports real-time token streaming (SSE) with Claude, Gemini, ChatGPT/OpenAI, Grok, and Azure. Find bottlenecks, caching gaps, and errors using natural language prompts without leaving the viewer.
 - **HAR Diff / Compare Mode** ✨ — Load a second file to compare before/after data. Highlights added, removed, changed, and identical requests with side-by-side details, duration deltas, and size deltas.
 - **Performance Insights** ✨ — Analyze your traffic with 7 insight tabs: Overview (P50/P95/P99, status counts), top Slowest & Largest requests, Host grouping, Status/Type distribution, Duplicate detection, and Issues scanner (missing cache headers, uncompressed responses, HTTP errors).
 - **Advanced Export Menu** ✨ — Export your requests exactly how you need them:
@@ -62,6 +63,10 @@ This upgraded version includes several advanced features over the original:
 **Advanced Export Dropdown**
 <br>
 <img src="screenshots/export_dropdown.png" width="800">
+
+**AI Chat Assistant with Token Streaming**
+<br>
+<img src="screenshots/ai_chat.png" width="800">
 
 ## Keyboard & Mouse Shortcuts
 
