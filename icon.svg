@@ -1,46 +1,46 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="100" height="100">
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Shield/Container -->
+  <rect x="48" y="48" width="416" height="416" rx="80" fill="url(#paint0_linear)" />
+  
+  <!-- Subtle Grid Pattern -->
+  <path d="M120 48V464M200 48V464M280 48V464M360 48V464" stroke="white" stroke-opacity="0.05" stroke-width="2"/>
+  
+  <!-- Waterfall Chart Elements (The HAR Data) -->
+  <!-- Request 1 -->
+  <rect x="120" y="140" width="80" height="24" rx="12" fill="#06B6D4" fill-opacity="0.9" />
+  <!-- Request 2 -->
+  <rect x="180" y="190" width="140" height="24" rx="12" fill="#22D3EE" fill-opacity="0.8" />
+  <!-- Request 3 -->
+  <rect x="240" y="240" width="100" height="24" rx="12" fill="#06B6D4" fill-opacity="0.9" />
+  <!-- Request 4 -->
+  <rect x="300" y="290" width="60" height="24" rx="12" fill="#22D3EE" fill-opacity="0.8" />
+
+  <!-- Magnifying Glass (The Viewer/Inspector) -->
+  <g filter="url(#shadow)">
+    <!-- Lens -->
+    <circle cx="256" cy="240" r="100" stroke="white" stroke-width="28" />
+    <!-- Reflection on Lens -->
+    <path d="M210 180C220 170 240 165 260 165" stroke="white" stroke-width="8" stroke-linecap="round" stroke-opacity="0.4" />
+    <!-- Handle -->
+    <path d="M325 310L400 385" stroke="white" stroke-width="32" stroke-linecap="round" />
+  </g>
+
+  <!-- Definitions -->
   <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#e0f2fe"/>
-      <stop offset="100%" stop-color="#bfdbfe"/>
+    <linearGradient id="paint0_linear" x1="48" y1="48" x2="464" y2="464" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4F46E5" />
+      <stop offset="1" stop-color="#3730A3" />
     </linearGradient>
-    <linearGradient id="fade1" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#0369a1" stop-opacity="1"/>
-      <stop offset="100%" stop-color="#0369a1" stop-opacity="0.2"/>
-    </linearGradient>
-    <linearGradient id="fade2" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#0369a1" stop-opacity="0.8"/>
-      <stop offset="100%" stop-color="#0369a1" stop-opacity="0.1"/>
-    </linearGradient>
-    <linearGradient id="fade3" x1="0%" y1="0%" x2="100%" y2="80%">
-      <stop offset="0%" stop-color="#0369a1" stop-opacity="0.5"/>
-      <stop offset="100%" stop-color="#0369a1" stop-opacity="0.05"/>
-    </linearGradient>
+    
+    <filter id="shadow" x="120" y="110" width="320" height="320" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="10"/>
+      <feGaussianBlur stdDeviation="15"/>
+      <feComposite in2="hardAlpha" operator="out"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow" result="shape"/>
+    </filter>
   </defs>
-
-  <rect width="64" height="64" rx="14" ry="14" fill="white"/>
-
-  <!-- Left pillar (client) -->
-  <rect x="10" y="12" width="12" height="40" rx="3" fill="#0369a1"/>
-  <rect x="12" y="15" width="8" height="6" rx="1" fill="#e0f2fe" opacity="0.5"/>
-
-  <!-- Right pillar (server) -->
-  <rect x="42" y="12" width="12" height="40" rx="3" fill="#0f172a"/>
-  <circle cx="48" cy="18" r="1.5" fill="#e0f2fe" opacity="0.6"/>
-  <circle cx="48" cy="23" r="1.5" fill="#e0f2fe" opacity="0.6"/>
-  <circle cx="48" cy="28" r="1.5" fill="#e0f2fe" opacity="0.6"/>
-
-  <!-- Staggered fading crossbars -->
-  <rect x="22" y="29" width="20" height="6" rx="1" fill="url(#fade1)" opacity="0.8"/>
-  <rect x="22" y="36" width="17" height="5" rx="2" fill="url(#fade2)"/>
-  <rect x="22" y="42" width="13" height="5" rx="2" fill="url(#fade3)"/>
-
-  <!-- Magnifying glass (bottom-right corner, overlapping) -->
-  <!-- Lens circle -->
-  <circle cx="46" cy="46" r="8" fill="white" opacity="0.92"/>
-  <circle cx="46" cy="46" r="8" fill="none" stroke="#0369a1" stroke-width="2.2"/>
-  <!-- Inner highlight dot -->
-  <circle cx="44" cy="44" r="1.2" fill="#0369a1" opacity="0.3"/>
-  <!-- Handle -->
-  <line x1="52" y1="52" x2="57" y2="57" stroke="#0369a1" stroke-width="2.5" stroke-linecap="round"/>
 </svg>

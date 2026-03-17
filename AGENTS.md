@@ -36,13 +36,21 @@ HAR-Viewer is an HTTP request timeline visualizer in a single HTML file (`index.
 - **Exception**: `image/svg+xml` is NOT treated as base64 (it's text/XML, not binary)
 
 ### 3. Body Viewer (Popup Dialog)
-- Slides from right, 700px wide
+- Slides from right, 700px wide (default), **resizable by dragging left edge** (min 400px, max 95vw)
+- Resize handle: 5px invisible strip on left edge, highlights cyan on hover/drag
+- `initBodyModalResizer()` sets up drag events; width resets to default on close
 - Format buttons: RAW, JSON, XML, HTML, Image, HEX
+- **JSON syntax highlighting** (VSCode Dark+ inspired):
+  - `syntaxHighlightJson()` function tokenizes and wraps JSON with colored spans
+  - Colors: keys (#9cdcfe light-blue), strings (#ce9178 orange), numbers (#b5cea8 green), booleans (#569cd6 blue), null (#d16969 red), braces (#da70d6 purple), brackets (#ffd700 gold)
+  - Line numbers via CSS `counter-reset`/`counter-increment` on `.json-line` spans
+  - Uses a separate `<div id="bodyJsonHighlight">` (hidden textarea) instead of textarea for JSON format
+  - Both popup and detail panel body viewers use the same `syntaxHighlightJson()` function
 - HEX view shows hex on left, ASCII on right (16 bytes/row, padded)
 - Size indicator calculated from actual content bytes
 - Copy button with "Copied!" feedback
-- Wrap toggle checkbox
-- **Important**: Uses `<textarea>` for text formats (allows cursor navigation), separate `<div>` for images
+- Wrap toggle checkbox (also toggles wrap on JSON highlight div)
+- **Important**: Uses `<textarea>` for text formats (allows cursor navigation), separate `<div>` for images and JSON highlighted
 - **MIME Type Fallback**: When loading JSON files (not HAR), MIME type is obtained from `responseHeaders['Content-Type']` if `responseMimeType` is not set
 - Both popup body viewer and detail panel use this fallback logic
 
@@ -160,6 +168,34 @@ HAR-Viewer is an HTTP request timeline visualizer in a single HTML file (`index.
 - For widest compatibility when opening `index.html` directly via `file://`, prefer explicit null checks (`a && a.b`) and ternary checks over `?.`/`??`
 - Keep compatibility fallbacks in startup code (timezone setup, feature detection) so initialization never aborts on older engines
 
+### 14. Performance Insights Panel
+- Slide-in panel from right (720px wide) with backdrop blur
+- Triggered by `🔍 Insights` button in the bottom bar (visible after data load)
+- **7 tabs**: Overview, Slowest, Largest, By Host, Status & Type, Duplicates, Issues
+- **Overview tab**: Summary grid with Total Requests, Avg Duration, P50/P95/P99/Max, Total Size, status code counts (2xx/3xx/4xx/5xx), quick alerts for errors and slow requests
+- **Slowest tab**: Top 20 requests sorted by duration, clickable to scroll to request in timeline
+- **Largest tab**: Top 20 requests sorted by response content length
+- **By Host tab**: Requests grouped by hostname, showing total duration and size per host with bar charts
+- **Status & Type tab**: Bar chart distributions for HTTP status codes and content types
+- **Duplicates tab**: Detects duplicate GET requests (same URL path, multiple calls), suggests caching
+- **Issues tab**: 
+  - Lists all 5xx and 4xx errors
+  - Detects static resources (IMG, JS, CSS, FONT) missing Cache-Control/Expires/ETag headers
+  - Detects large (>10KB) text responses (JSON, HTML, XML, JS, CSS) without Content-Encoding (no gzip/br)
+- Data source: uses `filteredRequests` array (respects current filters)
+- Clickable request cards close panel and scroll/highlight the row in the main table
+- Uses Safari-compatible syntax (no `?.` or `??`, only `var` and explicit null checks)
+- Key functions:
+  - `openInsightsPanel()` / `closeInsightsPanel()` - panel visibility
+  - `switchInsightsTab(tabName)` - tab switching
+  - `computeAndRenderInsights()` - main computation and HTML generation
+  - `insightsAggregateBy(reqs, keyFn)` - generic group-by utility
+  - `insightsGetHost(uri)` - extract hostname from URI
+  - `insightsPercentile(values, p)` - percentile calculation
+  - `insightsSummaryCard(label, value, color)` - generates summary card HTML
+  - `insightsRequestCard(rank, r, valueText, valueClass)` - generates request card HTML
+  - `insightsScrollToRequest(id)` - scrolls timeline/table to a specific request
+
 ### 5. Fiddler AutoResponder Export
 - Export button appears in the bottom bar after data is loaded
 - Opens a dialog with configurable options:
@@ -187,6 +223,30 @@ HAR-Viewer is an HTTP request timeline visualizer in a single HTML file (`index.
   - `fiddlerXmlEscape(text)` / `fiddlerRegexEscape(s)` - Escaping utilities
   - `downloadAsZip(files, zipName)` - Minimal ZIP file generator
   - `addExportOverrideHeader()` / `getExportOverrideHeaders()` - Override header management
+
+### 6. Export Menu & Additional Exports
+- **Export dropdown menu** in bottom bar replaces the old single "Export Fiddler Rules" button
+- Uses `📦 Export ▾` button that opens a dropdown with 3 options
+- Dropdown opens upward (above bottom bar), closes on click-outside
+- `getExportRequests()` - shared helper: returns selected rows if any, otherwise all filtered requests
+- Key functions: `toggleExportMenu()`, `closeExportMenu()`
+
+#### cURL Script Export
+- Generates a `.sh` bash script with `curl` commands for each request
+- Includes method, headers (`-H`), request body (`-d`), and URI
+- Uses `escapeShellArg()` for proper shell escaping (single-quote wrapping)
+- Handles both object-style and string-style `requestHeaders`
+- Downloads as `requests_YYYY-MM-DD.sh`
+- Key function: `exportCurlScript()`
+
+#### Postman Collection Export
+- Generates Postman Collection v2.1 JSON
+- Full URL parsing with `protocol`, `host[]`, `port`, `path[]`, `query[]`
+- Headers array with `{key, value}` pairs
+- Request body with `mode: 'raw'` and language detection (json/xml/html/text)
+- Response examples with status code, headers, and body
+- Downloads as `postman_collection_YYYY-MM-DD.json`
+- Key function: `exportPostmanCollection()`
 
 ## JSON Format Fields
 - **Required**: `id`, `uri`, `method`, `statusCode`, `startRequestTimestamp`, `beginResponseTimestamp`, `endResponseTimestamp`, `threadId`
@@ -237,6 +297,9 @@ Use event delegation instead of inline onclick handlers where possible. For clic
 - `formatTimestamp(timestamp, format)` - formats timestamp based on selected timezone (local/utc)
 - `handleTimezoneChange()` - handles timezone dropdown changes
 - `formatBytes(bytes)` - formats byte count to human-readable string (B, KB, MB, GB)
+- `openInsightsPanel()` / `closeInsightsPanel()` - Performance Insights panel
+- `computeAndRenderInsights()` - computes and renders all insights tabs
+- `insightsScrollToRequest(id)` - scrolls to a request from insights card click
 
 ### Preloading Data
 The app supports embedding JSON or HAR data directly into the HTML file for automatic loading:

@@ -1,18 +1,12 @@
 <p align="center">
   <img src="icon.svg" width="120" height="120" alt="HAR-Viewer">
 </p>
-<h1 align="center">HAR-Viewer</h1>
+<h1 align="center">HAR-Viewer (Upgraded Version)</h1>
 
-> **Disclaimer:** This project is vibe coded. It works, but may contain questionable choices.
+> **Disclaimer:** This project is an upgraded version of the original repository: [omega0verride/HAR-Viewer](https://github.com/omega0verride/HAR-Viewer). It has been heavily enhanced with new features for deep traffic analysis, comparisons, and exports while maintaining the single-file, zero-dependency philosophy.
 
 <p align="center">
-  A single-file HTTP request timeline visualizer. Drop in a HAR or JSON file and get an interactive waterfall chart of your HTTP traffic — no server, no dependencies, no install.
-</p>
-
-<p align="center" style="font-size: 1.2em; text-decoration: underline; text-decoration-color: #888;">
-<b>
-<a href="https://harviewer.com/">Try Online - 🌐harviewer.com</a>
-</b>
+  A single-file HTTP request timeline visualizer and analysis tool. Drop in a HAR or JSON file and get an interactive waterfall chart, performance insights, and diffing of your HTTP traffic — no server, no dependencies, no install.
 </p>
 
 ## Quick Start
@@ -25,27 +19,49 @@ That's it. Everything runs client-side in a single HTML file.
 
 > **Note:** The single-file approach is intentional. No build step, no dependencies, no npm install — just drop the HTML file anywhere and it works. Sometimes the simplest solution is the best one.
 
-## Features
+## Features & Enhancements
+
+This upgraded version includes several advanced features over the original:
+
+- **HAR Diff / Compare Mode** ✨ — Load a second file to compare before/after data. Highlights added, removed, changed, and identical requests with side-by-side details, duration deltas, and size deltas.
+- **Performance Insights** ✨ — Analyze your traffic with 7 insight tabs: Overview (P50/P95/P99, status counts), top Slowest & Largest requests, Host grouping, Status/Type distribution, Duplicate detection, and Issues scanner (missing cache headers, uncompressed responses, HTTP errors).
+- **Advanced Export Menu** ✨ — Export your requests exactly how you need them:
+  - **Fiddler Rules (.farx)**: Generate Fiddler AutoResponder rules along with `.dat` files for easy mock environments.
+  - **cURL Script (.sh)**: Export selected or all requests as a bash script with `curl` commands (includes headers and body).
+  - **Postman Collection (.json)**: Generate a Postman Collection v2.1 file with parsed URLs, headers, bodies, and response examples.
+- **Enhanced Body Viewer** ✨ — Resizable dialog (drag the left edge), VSCode-like **JSON Syntax Highlighting** with line numbers, and formatted viewing for RAW, XML, HTML, Image, and HEX.
+- **Base64 Decoding** ✨ — Automatic and reliable detection of Base64 encoded bodies (such as images, SVGs, or explicitly encoded content in HARs) and proper rendering in the UI without getting corrupted.
+
+### Core Features
 
 - **Waterfall timeline** — visualize request timing with start, response, and end markers
 - **HAR support** — load `.har` files exported from Chrome DevTools, Firefox, or any HAR-compliant tool
 - **JSON support** — use a simple JSON array/object format for custom instrumentation
 - **Request details** — click any request to inspect headers, body content, and timing
-- **Body viewer** — view request/response bodies as RAW, JSON, XML, HTML, Image, or HEX
 - **Thread grouping** — see which requests ran on which threads
 - **Multi-select** — click, Ctrl+click, Shift+click, or Ctrl+A to select rows
 - **Zoom** — zoom into selections, scroll to zoom, or use the slider; zoom-to-fit button
 - **Content type detection** — automatic type column (JSON, XML, HTML, IMG, JS, CSS, etc.)
-- **Drag & drop** — drop files directly onto the page
 - **Zero dependencies** — single HTML file, no build step, no server required
 - **Dark theme** — easy on the eyes
-- **Export Fiddler Rules** — export requests as Fiddler AutoResponder rules (.farx) with configurable match/response options; export all filtered or only selected requests
 
 ## Screenshots
 
-![Timeline overview](screenshots/1.png)
-![Request details](screenshots/2.png)
-![Stats](screenshots/3.png)
+**JSON Syntax Highlighting & Resizable Body Viewer**
+<br>
+<img src="screenshots/body_viewer_json.png" width="800">
+
+**HAR Diff Summary & Table**
+<br>
+<img src="screenshots/diff_summary.png" width="800">
+
+**HAR Diff Left-vs-Right Detail Overlay**
+<br>
+<img src="screenshots/diff_detail.png" width="800">
+
+**Advanced Export Dropdown**
+<br>
+<img src="screenshots/export_dropdown.png" width="800">
 
 ## Keyboard & Mouse Shortcuts
 
