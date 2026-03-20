@@ -1,319 +1,310 @@
-let currentDiffItems = [];
-let currentDiffSummary = null;
+// ===== HAR Diff / Compare =====
 
-function normalizeCompareHeaders(headers) {
-    const map = normalizeHeaderMap(headers);
-    const keys = Object.keys(map).sort();
-    const normalized = {};
-    keys.forEach(function(key) {
-        normalized[key.toLowerCase()] = String(map[key]);
-    });
-    return JSON.stringify(normalized);
-}
+var diffLeftRequests = null;
+var diffRightRequests = null;
+var diffResults = [];
+var diffCurrentFilter = 'all';
 
-function getCompareBodySignature(request) {
-    if (!request) {
-        return '';
-    }
-    if (request.responseOriginalBody) {
-        return String(request.responseOriginalBody);
-    }
-    if (request.responseBodyChunks && request.responseBodyChunks.length) {
-        return request.responseBodyChunks.join('');
-    }
-    if (request.responseBodyPath) {
-        return 'file:' + request.responseBodyPath;
-    }
-    return '';
-}
-
-function percentile(values, ratio) {
-    if (!values.length) {
-        return 0;
-    }
-    const sorted = values.slice().sort(function(left, right) {
-        return left - right;
-    });
-    const index = Math.min(sorted.length - 1, Math.max(0, Math.floor(sorted.length * ratio)));
-    return sorted[index];
-}
-
-function createDiffItem(leftRequest, rightRequest) {
-    const key = leftRequest ? leftRequest.requestKey : (rightRequest ? rightRequest.requestKey : '');
-    if (!leftRequest) {
-        return {
-            key: key,
-            left: null,
-            right: rightRequest,
-            diffType: 'only-in-right',
-            category: 'only-in-right',
-            changed: { status: false, duration: false, headers: false, size: false, body: false },
-            durationDeltaMs: rightRequest ? rightRequest.duration : 0,
-            sizeDeltaBytes: rightRequest && rightRequest.transferSize ? rightRequest.transferSize : 0
-        };
-    }
-    if (!rightRequest) {
-        return {
-            key: key,
-            left: leftRequest,
-            right: null,
-            diffType: 'only-in-left',
-            category: 'only-in-left',
-            changed: { status: false, duration: false, headers: false, size: false, body: false },
-            durationDeltaMs: leftRequest ? -leftRequest.duration : 0,
-            sizeDeltaBytes: leftRequest && leftRequest.transferSize ? -leftRequest.transferSize : 0
-        };
-    }
-
-    const changed = {
-        status: leftRequest.status !== rightRequest.status,
-        duration: leftRequest.duration !== rightRequest.duration,
-        headers: normalizeCompareHeaders(leftRequest.responseHeaders) !== normalizeCompareHeaders(rightRequest.responseHeaders),
-        size: (leftRequest.transferSize || 0) !== (rightRequest.transferSize || 0),
-        body: getCompareBodySignature(leftRequest) !== getCompareBodySignature(rightRequest)
-    };
-
-    let category = 'matched-identical-ish';
-    if (changed.status) {
-        category = 'matched-with-status-change';
-    } else if (changed.duration) {
-        category = 'matched-with-timing-change';
-    } else if (changed.headers) {
-        category = 'matched-with-header-change';
-    } else if (changed.size) {
-        category = 'matched-with-size-change';
-    } else if (changed.body) {
-        category = 'matched-with-body-change';
-    }
-
-    return {
-        key: key,
-        left: leftRequest,
-        right: rightRequest,
-        diffType: 'matched',
-        category: category,
-        changed: changed,
-        durationDeltaMs: rightRequest.duration - leftRequest.duration,
-        sizeDeltaBytes: (rightRequest.transferSize || 0) - (leftRequest.transferSize || 0)
-    };
-}
-
-function computeDiffItems(leftRequests, rightRequests, options) {
-    const normalizedOptions = options || {};
-    const ignoreQuery = normalizedOptions.ignoreQuery === true;
-    const buckets = {};
-    const items = [];
-
-    function addToBucket(side, request) {
-        const key = ignoreQuery ? request.requestKeyWithoutQuery : request.requestKey;
-        if (!buckets[key]) {
-            buckets[key] = { left: [], right: [] };
+// Handle compare file input
+document.getElementById('compareFileInput').addEventListener('change', function (e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function (ev) {
+        try {
+            var data = JSON.parse(ev.target.result);
+            var reqs;
+            if (data.log && data.log.entries) {
+                reqs = convertHarToRequests(data);
+            } else if (Array.isArray(data)) {
+                reqs = data;
+            } else if (data.requests) {
+                reqs = data.requests;
+            } else {
+                alert('Invalid file format');
+                return;
+            }
+            // Left = current loaded data, Right = newly loaded compare file
+            diffLeftRequests = filteredRequests.slice();
+            diffRightRequests = reqs;
+            recomputeDiff();
+            openDiffPanel();
+        } catch (err) {
+            alert('Failed to parse compare file: ' + err.message);
         }
-        buckets[key][side].push(request);
+        e.target.value = '';
+    };
+    reader.readAsText(file);
+});
+
+function diffGetDuration(r) {
+    if (!r) return 0;
+    var end = r.endResponseTimestamp || r.beginResponseTimestamp || r.startRequestTimestamp || 0;
+    return end - (r.startRequestTimestamp || 0);
+}
+
+function diffGetSize(r) {
+    if (!r) return 0;
+    return r.responseContentLength || 0;
+}
+
+function diffGetKey(r, strategy) {
+    var uri = r.uri || '';
+    if (strategy === 'noquery') {
+        try { var u = new URL(uri); uri = u.origin + u.pathname; } catch (e) { }
     }
+    return (r.method || 'GET') + ' ' + uri;
+}
 
-    leftRequests.forEach(function(request) {
-        addToBucket('left', request);
+function computeDiff(leftReqs, rightReqs, strategy) {
+    var leftMap = {};
+    var rightMap = {};
+    // Index requests by key, allowing duplicates by appending index
+    leftReqs.forEach(function (r, i) {
+        var key = diffGetKey(r, strategy);
+        if (!leftMap[key]) leftMap[key] = [];
+        leftMap[key].push(r);
     });
-    rightRequests.forEach(function(request) {
-        addToBucket('right', request);
+    rightReqs.forEach(function (r, i) {
+        var key = diffGetKey(r, strategy);
+        if (!rightMap[key]) rightMap[key] = [];
+        rightMap[key].push(r);
     });
 
-    Object.keys(buckets).sort().forEach(function(key) {
-        const bucket = buckets[key];
-        const maxLength = Math.max(bucket.left.length, bucket.right.length);
-        for (let index = 0; index < maxLength; index++) {
-            items.push(createDiffItem(bucket.left[index] || null, bucket.right[index] || null));
+    var allKeys = {};
+    Object.keys(leftMap).forEach(function (k) { allKeys[k] = true; });
+    Object.keys(rightMap).forEach(function (k) { allKeys[k] = true; });
+
+    var results = [];
+    Object.keys(allKeys).forEach(function (key) {
+        var lefts = leftMap[key] || [];
+        var rights = rightMap[key] || [];
+        var maxLen = Math.max(lefts.length, rights.length);
+
+        for (var i = 0; i < maxLen; i++) {
+            var left = lefts[i] || null;
+            var right = rights[i] || null;
+            var item = { key: key, left: left, right: right };
+
+            if (!left) {
+                item.diffType = 'added';
+            } else if (!right) {
+                item.diffType = 'removed';
+            } else {
+                // Both exist, compare
+                var statusChanged = (left.statusCode || 0) !== (right.statusCode || 0);
+                var durationLeft = diffGetDuration(left);
+                var durationRight = diffGetDuration(right);
+                var sizeLeft = diffGetSize(left);
+                var sizeRight = diffGetSize(right);
+                var durationDelta = durationRight - durationLeft;
+                var sizeDelta = sizeRight - sizeLeft;
+
+                // Check if timing changed more than 10% or status changed
+                var timingChanged = Math.abs(durationDelta) > Math.max(10, durationLeft * 0.1);
+                var sizeChanged = Math.abs(sizeDelta) > Math.max(100, sizeLeft * 0.1);
+
+                if (statusChanged || timingChanged || sizeChanged) {
+                    item.diffType = 'changed';
+                } else {
+                    item.diffType = 'identical';
+                }
+                item.statusChanged = statusChanged;
+                item.durationDeltaMs = durationDelta;
+                item.sizeDeltaBytes = sizeDelta;
+            }
+            results.push(item);
         }
     });
 
-    return items;
+    // Sort: removed first, then changed, then added, then identical
+    var order = { removed: 0, changed: 1, added: 2, identical: 3 };
+    results.sort(function (a, b) { return (order[a.diffType] || 3) - (order[b.diffType] || 3); });
+
+    return results;
 }
 
-function summarizeDiffItems(items, leftRequests, rightRequests) {
-    const matched = items.filter(function(item) {
-        return item.diffType === 'matched';
-    });
-    const changed = matched.filter(function(item) {
-        return item.category !== 'matched-identical-ish';
-    });
-    const onlyLeft = items.filter(function(item) {
-        return item.diffType === 'only-in-left';
-    });
-    const onlyRight = items.filter(function(item) {
-        return item.diffType === 'only-in-right';
-    });
-    const regressions = matched.filter(function(item) {
-        return item.durationDeltaMs > 0;
-    }).sort(function(left, right) {
-        return right.durationDeltaMs - left.durationDeltaMs;
-    }).slice(0, 10);
-    const leftDurations = leftRequests.map(function(request) { return request.duration; });
-    const rightDurations = rightRequests.map(function(request) { return request.duration; });
-    const leftTransfer = leftRequests.reduce(function(sum, request) { return sum + (request.transferSize || 0); }, 0);
-    const rightTransfer = rightRequests.reduce(function(sum, request) { return sum + (request.transferSize || 0); }, 0);
-
-    return {
-        totalItems: items.length,
-        matchedCount: matched.length,
-        changedCount: changed.length,
-        onlyLeftCount: onlyLeft.length,
-        onlyRightCount: onlyRight.length,
-        statusChanges: matched.filter(function(item) { return item.changed.status; }).length,
-        p50Delta: percentile(rightDurations, 0.5) - percentile(leftDurations, 0.5),
-        p95Delta: percentile(rightDurations, 0.95) - percentile(leftDurations, 0.95),
-        maxDelta: (rightDurations.length ? Math.max.apply(null, rightDurations) : 0) - (leftDurations.length ? Math.max.apply(null, leftDurations) : 0),
-        totalTransferDelta: rightTransfer - leftTransfer,
-        regressions: regressions
-    };
+function recomputeDiff() {
+    if (!diffLeftRequests || !diffRightRequests) return;
+    var strategy = document.getElementById('diffMatchStrategy').value;
+    diffResults = computeDiff(diffLeftRequests, diffRightRequests, strategy);
+    renderDiffSummary();
+    renderDiffTable();
 }
 
-function filterDiffItems(items, mode) {
-    if (!mode || mode === 'all') {
-        return items;
-    }
-    return items.filter(function(item) {
-        if (mode === 'changed') return item.category !== 'matched-identical-ish';
-        if (mode === 'added') return item.diffType === 'only-in-right';
-        if (mode === 'removed') return item.diffType === 'only-in-left';
-        if (mode === 'slower') return item.durationDeltaMs > 0;
-        if (mode === 'faster') return item.durationDeltaMs < 0;
-        if (mode === 'status') return item.changed.status;
-        if (mode === 'size') return item.changed.size;
-        return true;
+function renderDiffSummary() {
+    var total = diffResults.length;
+    var added = 0, removed = 0, changed = 0, identical = 0;
+    var totalDurationDelta = 0;
+    var regressions = [];
+
+    diffResults.forEach(function (item) {
+        if (item.diffType === 'added') added++;
+        else if (item.diffType === 'removed') removed++;
+        else if (item.diffType === 'changed') changed++;
+        else identical++;
+        if (item.durationDeltaMs && item.durationDeltaMs > 0) {
+            totalDurationDelta += item.durationDeltaMs;
+            regressions.push(item);
+        }
     });
+
+    var html = '';
+    html += '<div class="diff-summary-card" style="border-left-color:#4fc3f7"><div class="label">Total</div><div class="value">' + total + '</div></div>';
+    html += '<div class="diff-summary-card" style="border-left-color:#888"><div class="label">Identical</div><div class="value">' + identical + '</div></div>';
+    html += '<div class="diff-summary-card" style="border-left-color:#ffa726"><div class="label">Changed</div><div class="value">' + changed + '</div></div>';
+    html += '<div class="diff-summary-card" style="border-left-color:#66bb6a"><div class="label">Added</div><div class="value">' + added + '</div></div>';
+    html += '<div class="diff-summary-card" style="border-left-color:#ef5350"><div class="label">Removed</div><div class="value">' + removed + '</div></div>';
+    if (diffLeftRequests) {
+        html += '<div class="diff-summary-card" style="border-left-color:#9c27b0"><div class="label">Left Reqs</div><div class="value">' + diffLeftRequests.length + '</div></div>';
+    }
+    if (diffRightRequests) {
+        html += '<div class="diff-summary-card" style="border-left-color:#00bcd4"><div class="label">Right Reqs</div><div class="value">' + diffRightRequests.length + '</div></div>';
+    }
+    document.getElementById('diffSummary').innerHTML = html;
 }
 
-function renderCompareView() {
-    const compareView = document.getElementById('compareView');
-    const activeDataset = getActiveDataset();
-    const compareDataset = getCompareDataset();
-    if (!compareView) {
-        return;
-    }
-    if (!activeDataset || !compareDataset) {
-        compareView.innerHTML = '<div class="compare-empty">Load a second file to enable compare mode.</div>';
-        return;
-    }
+function renderDiffTable() {
+    var filter = diffCurrentFilter;
+    var tbody = document.getElementById('diffTableBody');
+    var html = '';
 
-    const matchingMode = document.getElementById('compareMatchMode').value;
-    const filterMode = document.getElementById('compareFilterMode').value;
-    currentDiffItems = computeDiffItems(activeDataset.requests, compareDataset.requests, {
-        ignoreQuery: matchingMode === 'ignore-query'
+    diffResults.forEach(function (item, idx) {
+        if (filter !== 'all' && item.diffType !== filter) return;
+
+        var rowClass = 'diff-' + (item.diffType === 'added' ? 'only-right' : item.diffType === 'removed' ? 'only-left' : item.diffType === 'changed' ? 'changed' : 'identical');
+        var badgeClass = item.diffType;
+        var badgeLabel = item.diffType.charAt(0).toUpperCase() + item.diffType.slice(1);
+
+        var method = (item.left ? item.left.method : item.right.method) || '';
+        var uri = item.key.substring(method.length + 1);
+        // Truncate URI for display
+        var uriDisplay = uri.length > 80 ? uri.substring(0, 80) + '…' : uri;
+
+        var leftStatus = item.left ? item.left.statusCode : '—';
+        var rightStatus = item.right ? item.right.statusCode : '—';
+        var leftDur = item.left ? formatDuration(diffGetDuration(item.left)) : '—';
+        var rightDur = item.right ? formatDuration(diffGetDuration(item.right)) : '—';
+
+        var dDur = '';
+        if (item.durationDeltaMs !== undefined && item.durationDeltaMs !== null && item.left && item.right) {
+            var sign = item.durationDeltaMs > 0 ? '+' : '';
+            var cls = item.durationDeltaMs > 0 ? 'slower' : item.durationDeltaMs < 0 ? 'faster' : 'neutral';
+            dDur = '<span class="diff-delta ' + cls + '">' + sign + formatDuration(item.durationDeltaMs) + '</span>';
+        }
+        var dSize = '';
+        if (item.sizeDeltaBytes !== undefined && item.sizeDeltaBytes !== null && item.left && item.right) {
+            var sSign = item.sizeDeltaBytes > 0 ? '+' : '';
+            var sCls = item.sizeDeltaBytes > 0 ? 'slower' : item.sizeDeltaBytes < 0 ? 'faster' : 'neutral';
+            dSize = '<span class="diff-delta ' + sCls + '">' + sSign + formatBytes(Math.abs(item.sizeDeltaBytes)) + '</span>';
+        }
+
+        html += '<tr class="' + rowClass + '" onclick="showDiffDetail(' + idx + ')">';
+        html += '<td><span class="diff-badge ' + badgeClass + '">' + badgeLabel + '</span></td>';
+        html += '<td>' + escapeHtml(method) + '</td>';
+        html += '<td title="' + escapeHtml(uri) + '">' + escapeHtml(uriDisplay) + '</td>';
+        html += '<td>' + leftStatus + '</td><td>' + rightStatus + '</td>';
+        html += '<td>' + leftDur + '</td><td>' + rightDur + '</td>';
+        html += '<td>' + dDur + '</td><td>' + dSize + '</td>';
+        html += '</tr>';
     });
-    currentDiffSummary = summarizeDiffItems(currentDiffItems, activeDataset.requests, compareDataset.requests);
-    const visibleItems = filterDiffItems(currentDiffItems, filterMode);
-    const leftLabel = activeDataset.metadata.sourceLabel || activeDataset.metadata.sourceName || activeDataset.id;
-    const rightLabel = compareDataset.metadata.sourceLabel || compareDataset.metadata.sourceName || compareDataset.id;
 
-    document.getElementById('compareMatchedCount').textContent = currentDiffSummary.matchedCount;
-    document.getElementById('compareChangedCount').textContent = currentDiffSummary.changedCount;
-    document.getElementById('compareOnlyLeftCount').textContent = currentDiffSummary.onlyLeftCount;
-    document.getElementById('compareOnlyRightCount').textContent = currentDiffSummary.onlyRightCount;
-    document.getElementById('compareStatusDelta').textContent = currentDiffSummary.statusChanges;
-    document.getElementById('compareP95Delta').textContent = formatDuration(currentDiffSummary.p95Delta);
-    document.getElementById('compareTransferDelta').textContent = formatBytes(Math.abs(currentDiffSummary.totalTransferDelta)) + (currentDiffSummary.totalTransferDelta >= 0 ? ' increase' : ' decrease');
+    if (!html) {
+        html = '<tr><td colspan="9" style="text-align:center;padding:40px;color:#666;">No matching results for this filter.</td></tr>';
+    }
 
-    let regressionsHtml = '';
-    if (currentDiffSummary.regressions.length) {
-        regressionsHtml = currentDiffSummary.regressions.map(function(item) {
-            return '<button class="compare-chip" onclick="openDiffDetailByKey(\'' + escapeHtml(item.key).replace(/'/g, '&#39;') + '\')">' +
-                escapeHtml(item.key) + ' +' + formatDuration(item.durationDeltaMs) + '</button>';
-        }).join('');
+    tbody.innerHTML = html;
+}
+
+function setDiffFilter(filter) {
+    diffCurrentFilter = filter;
+    document.querySelectorAll('.diff-filter-btn').forEach(function (btn) {
+        btn.classList.toggle('active', btn.dataset.filter === filter);
+    });
+    renderDiffTable();
+}
+
+function openDiffPanel() {
+    document.getElementById('diffBackdrop').classList.add('active');
+    document.getElementById('diffPanel').classList.add('active');
+}
+
+function closeDiffPanel() {
+    document.getElementById('diffBackdrop').classList.remove('active');
+    document.getElementById('diffPanel').classList.remove('active');
+}
+
+function showDiffDetail(idx) {
+    var item = diffResults[idx];
+    if (!item) return;
+
+    var html = '<div class="diff-detail-header"><h3>⇄ ' + escapeHtml(item.key) + '</h3>';
+    html += '<button class="diff-close" onclick="closeDiffDetail()">✕</button></div>';
+
+    html += '<div class="diff-detail-sides">';
+
+    // Left side
+    html += '<div class="diff-detail-side"><h4 style="color:#ef5350;">◀ Left (Base)</h4>';
+    if (item.left) {
+        html += diffDetailReqHtml(item.left, item.right);
     } else {
-        regressionsHtml = '<span class="compare-muted">No timing regressions</span>';
+        html += '<div style="color:#666;padding:20px;text-align:center;">Not present in left dataset</div>';
     }
-    document.getElementById('compareTopRegressions').innerHTML = regressionsHtml;
+    html += '</div>';
 
-    let rowsHtml = visibleItems.map(function(item, index) {
-        const leftStatus = item.left ? item.left.status : '-';
-        const rightStatus = item.right ? item.right.status : '-';
-        const leftDuration = item.left ? item.left.durationHuman : '-';
-        const rightDuration = item.right ? item.right.durationHuman : '-';
-        const badgeClass = item.diffType === 'only-in-left' ? 'compare-left' : item.diffType === 'only-in-right' ? 'compare-right' : (item.category === 'matched-identical-ish' ? 'compare-same' : 'compare-changed');
-        return '<tr class="compare-row" onclick="openDiffDetail(' + index + ')">' +
-            '<td><span class="compare-badge ' + badgeClass + '">' + escapeHtml(item.category) + '</span></td>' +
-            '<td>' + escapeHtml(item.key) + '</td>' +
-            '<td>' + escapeHtml(String(leftStatus)) + '</td>' +
-            '<td>' + escapeHtml(String(rightStatus)) + '</td>' +
-            '<td>' + escapeHtml(leftDuration) + '</td>' +
-            '<td>' + escapeHtml(rightDuration) + '</td>' +
-            '<td>' + (item.durationDeltaMs === 0 ? '0ms' : (item.durationDeltaMs > 0 ? '+' : '') + formatDuration(item.durationDeltaMs)) + '</td>' +
-            '<td>' + (item.sizeDeltaBytes === 0 ? '0 B' : (item.sizeDeltaBytes > 0 ? '+' : '-') + formatBytes(Math.abs(item.sizeDeltaBytes))) + '</td>' +
-            '</tr>';
-    }).join('');
-
-    if (!rowsHtml) {
-        rowsHtml = '<tr><td colspan="8" class="compare-empty">No diff items match the current filter.</td></tr>';
+    // Right side
+    html += '<div class="diff-detail-side"><h4 style="color:#66bb6a;">▶ Right (Compare)</h4>';
+    if (item.right) {
+        html += diffDetailReqHtml(item.right, item.left);
+    } else {
+        html += '<div style="color:#666;padding:20px;text-align:center;">Not present in right dataset</div>';
     }
+    html += '</div>';
 
-    compareView.innerHTML = '<div class="compare-table-wrap">' +
-        '<div class="compare-dataset-headings"><span>' + escapeHtml(leftLabel) + '</span><span>' + escapeHtml(rightLabel) + '</span></div>' +
-        '<table class="compare-table">' +
-        '<thead><tr><th>Type</th><th>Request</th><th>Left</th><th>Right</th><th>Left Dur</th><th>Right Dur</th><th>Δ Duration</th><th>Δ Size</th></tr></thead>' +
-        '<tbody>' + rowsHtml + '</tbody></table></div>';
+    html += '</div>';
+
+    document.getElementById('diffDetailPanel').innerHTML = html;
+    document.getElementById('diffDetailOverlay').classList.add('active');
 }
 
-function openDiffDetail(index) {
-    const item = currentDiffItems[index];
-    if (!item) {
-        return;
+function diffDetailReqHtml(req, otherReq) {
+    var h = '';
+    var dur = diffGetDuration(req);
+    var otherDur = otherReq ? diffGetDuration(otherReq) : dur;
+    var otherStatus = otherReq ? otherReq.statusCode : req.statusCode;
+
+    h += '<div class="diff-detail-section-title">General</div>';
+    h += diffRow('Method', req.method);
+    h += diffRow('URI', req.uri);
+    h += diffRow('Status', req.statusCode + (req.statusMessage ? ' ' + req.statusMessage : ''), req.statusCode !== otherStatus);
+    h += diffRow('Duration', formatDuration(dur), Math.abs(dur - otherDur) > 10);
+    h += diffRow('Size', req.responseContentLength ? formatBytes(req.responseContentLength) : '—', otherReq && req.responseContentLength !== (otherReq.responseContentLength || null));
+
+    // Request Headers
+    var reqHeaders = req.requestHeaders;
+    if (reqHeaders && typeof reqHeaders === 'object' && Object.keys(reqHeaders).length > 0) {
+        h += '<div class="diff-detail-section-title">Request Headers</div>';
+        Object.keys(reqHeaders).forEach(function (key) {
+            h += diffRow(key, reqHeaders[key]);
+        });
     }
-    openDiffDetailItem(item);
+
+    // Response Headers
+    var resHeaders = req.responseHeaders;
+    if (resHeaders && typeof resHeaders === 'object' && Object.keys(resHeaders).length > 0) {
+        h += '<div class="diff-detail-section-title">Response Headers</div>';
+        Object.keys(resHeaders).forEach(function (key) {
+            h += diffRow(key, resHeaders[key]);
+        });
+    }
+
+    return h;
 }
 
-function openDiffDetailByKey(key) {
-    for (let index = 0; index < currentDiffItems.length; index++) {
-        if (currentDiffItems[index].key === key) {
-            openDiffDetail(index);
-            return;
-        }
-    }
+function diffRow(label, value, highlight) {
+    return '<div class="diff-detail-row"><div class="diff-detail-label">' + escapeHtml(label) + '</div><div class="diff-detail-value' + (highlight ? ' diff-highlight' : '') + '">' + escapeHtml(String(value || '')) + '</div></div>';
 }
 
-function renderDiffSide(title, request) {
-    if (!request) {
-        return '<div class="diff-side"><div class="diff-side-title">' + escapeHtml(title) + '</div><div class="compare-empty">Missing request</div></div>';
-    }
-
-    const responseHeaders = getRequestHeadersAsText(request.responseHeaders) || 'No response headers';
-    const requestHeaders = getRequestHeadersAsText(request.requestHeaders) || 'No request headers';
-    const responseBody = escapeHtml((request.responseOriginalBody || request.responseBodyText || '').substring(0, 1200) || 'No inline response body');
-    const requestBody = escapeHtml((request.requestBodyText || '').substring(0, 1200) || 'No inline request body');
-
-    return '<div class="diff-side">' +
-        '<div class="diff-side-title">' + escapeHtml(title) + '</div>' +
-        '<div class="diff-side-grid">' +
-        '<div><span class="diff-label">Method</span><span class="diff-value">' + escapeHtml(request.method) + '</span></div>' +
-        '<div><span class="diff-label">Status</span><span class="diff-value">' + escapeHtml(String(request.status)) + ' ' + escapeHtml(request.msg) + '</span></div>' +
-        '<div><span class="diff-label">Duration</span><span class="diff-value">' + escapeHtml(request.durationHuman) + '</span></div>' +
-        '<div><span class="diff-label">Size</span><span class="diff-value">' + escapeHtml(formatBytes(request.transferSize)) + '</span></div>' +
-        '<div><span class="diff-label">Host</span><span class="diff-value">' + escapeHtml(request.host || '-') + '</span></div>' +
-        '<div><span class="diff-label">Type</span><span class="diff-value">' + escapeHtml(request.type || '-') + '</span></div>' +
-        '</div>' +
-        '<div class="diff-uri">' + escapeHtml(request.uri) + '</div>' +
-        '<div class="diff-block"><div class="diff-block-title">Request Headers</div><pre>' + escapeHtml(requestHeaders) + '</pre></div>' +
-        '<div class="diff-block"><div class="diff-block-title">Response Headers</div><pre>' + escapeHtml(responseHeaders) + '</pre></div>' +
-        '<div class="diff-block"><div class="diff-block-title">Request Body</div><pre>' + requestBody + '</pre></div>' +
-        '<div class="diff-block"><div class="diff-block-title">Response Body</div><pre>' + responseBody + '</pre></div>' +
-        '</div>';
-}
-
-function openDiffDetailItem(item) {
-    const panel = document.getElementById('detailPanel');
-    const content = document.getElementById('detailPanelContent');
-    const activeDataset = getActiveDataset();
-    const compareDataset = getCompareDataset();
-    const leftLabel = activeDataset ? (activeDataset.metadata.sourceLabel || activeDataset.metadata.sourceName || activeDataset.id) : 'Left';
-    const rightLabel = compareDataset ? (compareDataset.metadata.sourceLabel || compareDataset.metadata.sourceName || compareDataset.id) : 'Right';
-
-    document.getElementById('detailOrdinal').textContent = 'Diff';
-    document.getElementById('detailId').textContent = item.key;
-    document.getElementById('detailThreadBadge').style.background = '#3949ab';
-    document.getElementById('detailThreadBadge').textContent = item.category;
-    document.getElementById('detailTimestamp').textContent = 'Δ Duration: ' + (item.durationDeltaMs > 0 ? '+' : '') + formatDuration(item.durationDeltaMs) + ' | Δ Size: ' + (item.sizeDeltaBytes > 0 ? '+' : '') + formatBytes(Math.abs(item.sizeDeltaBytes));
-
-    content.innerHTML = '<div class="diff-detail-layout">' + renderDiffSide(leftLabel, item.left) + renderDiffSide(rightLabel, item.right) + '</div>';
-    document.getElementById('detailBackdrop').classList.add('active');
-    panel.classList.add('active');
+function closeDiffDetail() {
+    document.getElementById('diffDetailOverlay').classList.remove('active');
 }
