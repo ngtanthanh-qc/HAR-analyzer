@@ -2,6 +2,35 @@
     box-sizing: border-box;
 }
 
+/* Dark theme scrollbars */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #1a1a1a;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+::-webkit-scrollbar-corner {
+    background: #1a1a1a;
+}
+
+/* Firefox scrollbar */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #444 #1a1a1a;
+}
+
 body {
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     background: #121212;
@@ -3163,4 +3192,424 @@ body {
     font-family: monospace;
     font-size: 12px;
     color: #4fc3f7;
+}
+
+/* ===== SSE Viewer ===== */
+
+.sse-tabs {
+    display: flex;
+    gap: 2px;
+    padding: 8px 0 0 0;
+    border-bottom: 1px solid #333;
+    margin-bottom: 0;
+}
+
+.sse-tab {
+    background: #1e1e1e;
+    color: #999;
+    border: 1px solid #333;
+    border-bottom: none;
+    padding: 8px 18px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: inherit;
+    border-radius: 6px 6px 0 0;
+    transition: background 0.15s, color 0.15s;
+}
+
+.sse-tab:hover {
+    background: #2a2a2a;
+    color: #ccc;
+}
+
+.sse-tab.active {
+    background: #252525;
+    color: #4fc3f7;
+    border-color: #4fc3f7;
+    border-bottom: 1px solid #252525;
+    margin-bottom: -1px;
+}
+
+.sse-panel {
+    display: none;
+    background: #252525;
+    border-radius: 0 0 6px 6px;
+    overflow: auto;
+    height: calc(100vh - 220px);
+}
+
+.sse-panel.active {
+    display: block;
+}
+
+/* Assembled view */
+.sse-assembled-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: #1e1e1e;
+    border-bottom: 1px solid #333;
+}
+
+.sse-stat {
+    font-size: 11px;
+    color: #888;
+}
+
+.sse-assembled-content {
+    padding: 20px;
+    font-size: 14px;
+    line-height: 1.7;
+    color: #e0e0e0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.sse-assembled-content strong {
+    color: #fff;
+}
+
+.sse-assembled-content em {
+    color: #bbb;
+}
+
+.sse-heading {
+    color: #fff;
+    margin: 20px 0 10px 0;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+h1.sse-heading { font-size: 22px; }
+h2.sse-heading { font-size: 18px; }
+h3.sse-heading { font-size: 16px; }
+h4.sse-heading, h5.sse-heading, h6.sse-heading { font-size: 14px; }
+
+.sse-paragraph {
+    margin: 0 0 4px 0;
+    line-height: 1.7;
+}
+
+.sse-inline-code {
+    background: #3a3a3a;
+    color: #e0c4a8;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 0.9em;
+}
+
+.sse-link {
+    color: #4fc3f7;
+    text-decoration: none;
+}
+
+.sse-link:hover {
+    text-decoration: underline;
+}
+
+/* Divider */
+.sse-divider {
+    border: none;
+    border-top: 1px solid #444;
+    margin: 20px 0;
+}
+
+/* Code blocks */
+.sse-codeblock-wrapper {
+    margin: 16px 0;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #333;
+    background: #1a1a2e;
+}
+
+.sse-codeblock-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 14px;
+    background: #16162a;
+    border-bottom: 1px solid #2a2a44;
+    min-height: 32px;
+}
+
+.sse-codeblock-lang {
+    font-size: 11px;
+    color: #888;
+    font-family: inherit;
+    letter-spacing: 0.5px;
+}
+
+.sse-codeblock-copy {
+    background: #2a2a44;
+    color: #aaa;
+    border: 1px solid #3a3a55;
+    padding: 3px 12px;
+    border-radius: 4px;
+    font-size: 11px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s, color 0.15s;
+}
+
+.sse-codeblock-copy:hover {
+    background: #3a3a55;
+    color: #fff;
+}
+
+.sse-codeblock {
+    margin: 0;
+    padding: 14px 0;
+    overflow-x: auto;
+    background: transparent;
+    counter-reset: sse-line;
+}
+
+.sse-codeblock code {
+    display: block;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #e6e6e6;
+    background: transparent;
+    padding: 0;
+}
+
+.sse-code-line {
+    display: block;
+    padding: 0 14px 0 0;
+    min-height: 1.6em;
+}
+
+.sse-code-line:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.sse-line-num {
+    display: inline-block;
+    width: 40px;
+    text-align: right;
+    padding-right: 16px;
+    margin-right: 12px;
+    color: #555;
+    user-select: none;
+    border-right: 1px solid #2a2a44;
+    font-size: 12px;
+}
+
+.sse-code-raw {
+    display: none;
+}
+
+/* Syntax highlighting */
+.sse-hl-keyword { color: #c792ea; }
+.sse-hl-string { color: #c3e88d; }
+.sse-hl-comment { color: #676e95; font-style: italic; }
+.sse-hl-tag { color: #f07178; }
+.sse-hl-attr { color: #ffcb6b; }
+.sse-hl-num { color: #f78c6c; }
+.sse-hl-bool { color: #ff9cac; }
+.sse-hl-null { color: #ff9cac; }
+.sse-hl-key { color: #82aaff; }
+.sse-hl-bracket { color: #89ddff; }
+.sse-hl-template { color: #89ddff; background: rgba(137, 221, 255, 0.08); padding: 1px 2px; border-radius: 2px; }
+
+.sse-list {
+    margin: 10px 0 10px 24px;
+    padding: 0;
+}
+
+.sse-list li {
+    margin-bottom: 6px;
+    line-height: 1.6;
+}
+
+/* Events table */
+.sse-events-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.sse-events-table thead th {
+    background: #1e1e1e;
+    color: #888;
+    padding: 8px 12px;
+    text-align: left;
+    font-weight: 500;
+    border-bottom: 1px solid #333;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+.sse-events-table thead th:first-child {
+    width: 50px;
+    text-align: center;
+}
+
+.sse-events-table thead th:nth-child(2) {
+    width: 120px;
+}
+
+.sse-event-row {
+    cursor: pointer;
+    transition: background 0.1s;
+}
+
+.sse-event-row:hover {
+    background: #2a2a2a;
+}
+
+.sse-event-row.expanded {
+    background: #2a2a2a;
+}
+
+.sse-event-row td {
+    padding: 6px 12px;
+    border-bottom: 1px solid #2a2a2a;
+    color: #ccc;
+}
+
+.sse-event-num {
+    color: #666;
+    text-align: center;
+    font-size: 11px;
+}
+
+.sse-event-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 500;
+    font-family: monospace;
+}
+
+.sse-type-data {
+    background: #1b3a4b;
+    color: #4fc3f7;
+}
+
+.sse-type-meta {
+    background: #3e2723;
+    color: #ffab91;
+}
+
+.sse-event-type {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 500;
+    font-family: monospace;
+    background: #3e2723;
+    color: #ffab91;
+}
+
+.sse-event-data {
+    font-family: monospace;
+    font-size: 11px;
+    color: #aaa;
+    max-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sse-event-detail td {
+    padding: 0;
+    border-bottom: 1px solid #333;
+}
+
+.sse-event-raw {
+    background: #1a1a1a;
+    color: #ccc;
+    padding: 12px 16px;
+    margin: 0;
+    font-size: 11px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    white-space: pre-wrap;
+    word-break: break-all;
+    border-left: 3px solid #4fc3f7;
+}
+
+/* SSE Filter */
+.sse-filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: #1e1e1e;
+    border-bottom: 1px solid #333;
+    position: sticky;
+    top: 0;
+    z-index: 3;
+}
+
+.sse-filter-input {
+    flex: 1;
+    background: #2a2a2a;
+    border: 1px solid #444;
+    color: #e0e0e0;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+.sse-filter-input:focus {
+    border-color: #4fc3f7;
+}
+
+.sse-filter-input::placeholder {
+    color: #666;
+}
+
+.sse-filter-count {
+    font-size: 11px;
+    color: #888;
+    white-space: nowrap;
+    min-width: 60px;
+    text-align: right;
+}
+
+.sse-events-scroll {
+    overflow: auto;
+    height: calc(100% - 42px);
+}
+
+/* Meta tab */
+.sse-meta-list {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.sse-meta-card {
+    background: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.sse-meta-card-header {
+    padding: 8px 14px;
+    background: #1a1a1a;
+    border-bottom: 1px solid #2a2a2a;
+}
+
+.sse-meta-card-body {
+    margin: 0;
+    padding: 12px 14px;
+    font-size: 12px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    color: #ccc;
+    white-space: pre-wrap;
+    word-break: break-all;
+    line-height: 1.5;
 }

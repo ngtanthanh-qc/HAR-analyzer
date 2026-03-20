@@ -51,6 +51,11 @@ function showBodyModal(type, content, id, mimeType = '', encoding = 'text', orig
     });
     updateBodySizeIndicator();
 
+    // Show SSE button if content looks like SSE (text/event-stream or has event:/data: lines)
+    const sseBtn = document.getElementById('sseBtn');
+    const looksSSE = mimeType.includes('event-stream') || /^(event|data):\s/m.test(content);
+    sseBtn.style.display = looksSSE ? '' : 'none';
+
     // Show Decode button if content looks like base64
     const decodeBtn = document.getElementById('decodeBtn');
     const looksBase64 = /^[A-Za-z0-9+/=\s]+$/.test(content.trim()) && content.trim().length > 20;
@@ -95,6 +100,10 @@ function setBodyFormat(format) {
     // Hide HTML container if exists
     const htmlContainer = document.getElementById('bodyHtmlContainer');
     if (htmlContainer) htmlContainer.style.display = 'none';
+
+    // Hide SSE container if exists
+    const sseContainer = document.getElementById('bodySseContainer');
+    if (sseContainer) sseContainer.style.display = 'none';
 
     try {
         switch (format) {
@@ -238,6 +247,29 @@ function setBodyFormat(format) {
                 } catch (e) {
                     contentEl.value = 'Failed to decode Base64: ' + e.message + '\n\n' + currentBodyContent;
                 }
+                break;
+            case 'sse':
+                contentEl.style.display = 'none';
+                let sseEl = document.getElementById('bodySseContainer');
+                if (!sseEl) {
+                    sseEl = document.createElement('div');
+                    sseEl.id = 'bodySseContainer';
+                    contentEl.parentNode.insertBefore(sseEl, contentEl.nextSibling);
+                }
+                sseEl.style.display = 'block';
+                // Decode base64 if needed before parsing SSE
+                var sseRaw = currentBodyContent;
+                if (currentBodyEncoding === 'base64' || !/^(event|data):\s/m.test(sseRaw)) {
+                    try {
+                        var decoded = atob((currentBodyOriginal || sseRaw).trim());
+                        var bytes = Uint8Array.from(decoded, function(c) { return c.charCodeAt(0); });
+                        var utf8 = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+                        if (/^(event|data):\s/m.test(utf8)) {
+                            sseRaw = utf8;
+                        }
+                    } catch (e) { }
+                }
+                sseEl.innerHTML = renderSseView(sseRaw);
                 break;
             case 'hex':
                 let hex = '';
@@ -414,6 +446,11 @@ function setDetailBodyFormat(btn, uniqueId) {
             }
             contentEl.textContent = formatted.trim();
         } else { contentEl.textContent = raw; }
+    } else if (format === 'sse') {
+        contentEl.innerHTML = renderSseView(raw);
+        contentEl.style.whiteSpace = 'normal';
+        contentEl.style.height = 'auto';
+        contentEl.style.maxHeight = '500px';
     } else if (format === 'html') {
         contentEl.style.backgroundColor = '#fff';
         contentEl.style.color = '#000';
@@ -471,6 +508,9 @@ function closeBodyModal() {
     // Hide HTML container if exists
     var htmlContainer = document.getElementById('bodyHtmlContainer');
     if (htmlContainer) htmlContainer.style.display = 'none';
+    // Remove SSE container if exists
+    var sseContainer = document.getElementById('bodySseContainer');
+    if (sseContainer) sseContainer.remove();
     // Reset body metadata
     currentBodyMimeType = '';
     currentBodyEncoding = 'text';
@@ -579,6 +619,7 @@ function getDetailBodySection(req, bodyType) {
                     <button class="format-btn" data-format="html" data-target="${uniqueId}" onclick="setDetailBodyFormat(this, '${uniqueId}')">HTML</button>
                     <button class="format-btn" data-format="image" data-target="${uniqueId}" onclick="setDetailBodyFormat(this, '${uniqueId}')">Image</button>
                     <button class="format-btn" data-format="hex" data-target="${uniqueId}" onclick="setDetailBodyFormat(this, '${uniqueId}')">HEX</button>
+                    ${(mimeType.includes('event-stream') || /^(event|data):\s/m.test(content)) ? '<button class="format-btn" data-format="sse" data-target="' + uniqueId + '" onclick="setDetailBodyFormat(this, \'' + uniqueId + '\')">SSE</button>' : ''}
                     <span style="color:#666;font-size:10px;">|</span>
                     <label style="display:flex;align-items:center;gap:4px;cursor:pointer;color:#aaa;font-size:10px;margin-left:auto;">
                         <input type="checkbox" id="${uniqueId}_wrap" onchange="toggleDetailBodyWrap('${uniqueId}')">
@@ -607,4 +648,455 @@ function getDetailBodySection(req, bodyType) {
         </div>`;
     }
     return '';
+}
+
+// ===== SSE (Server-Sent Events) Viewer =====
+
+function parseSSEEvents(raw) {
+    var events = [];
+    var blocks = raw.split(/\n\n+/);
+    for (var i = 0; i < blocks.length; i++) {
+        var block = blocks[i].trim();
+        if (!block) continue;
+        var evt = { type: '', data: [], raw: block };
+        var lines = block.split('\n');
+        for (var j = 0; j < lines.length; j++) {
+            var line = lines[j];
+            if (line.startsWith('event:')) {
+                evt.type = line.substring(6).trim();
+            } else if (line.startsWith('data:')) {
+                evt.data.push(line.substring(5).trimStart());
+            } else if (line.startsWith('id:')) {
+                evt.id = line.substring(3).trim();
+            } else if (line.startsWith('retry:')) {
+                evt.retry = line.substring(6).trim();
+            }
+        }
+        if (evt.data.length > 0 || evt.type) {
+            evt.dataStr = evt.data.join('\n');
+            events.push(evt);
+        }
+    }
+    return events;
+}
+
+function assembleSSEContent(events) {
+    var assembled = '';
+    // Event types that are metadata, not content
+    var metaTypes = ['metadata', 'agent_updated', 'ping', 'error', 'done', 'heartbeat', 'status'];
+    for (var i = 0; i < events.length; i++) {
+        var evt = events[i];
+        var dataStr = evt.dataStr;
+        if (!dataStr || dataStr === '[DONE]') continue;
+        // Skip known metadata event types
+        if (evt.type && metaTypes.indexOf(evt.type) !== -1) continue;
+        // Try to extract streaming token from JSON data
+        try {
+            var obj = JSON.parse(dataStr);
+            var token = null;
+            // Skip if this looks like metadata (has trace_id, type but no content token)
+            if (obj.trace_id !== undefined && token === null) continue;
+            // Pattern: {"answer": "..."} (custom agents)
+            if (obj.answer !== undefined) token = obj.answer;
+            // Pattern: {"choices":[{"delta":{"content":"..."}}]} (OpenAI)
+            else if (obj.choices && obj.choices[0] && obj.choices[0].delta && obj.choices[0].delta.content !== undefined)
+                token = obj.choices[0].delta.content;
+            // Pattern: {"candidates":[{"content":{"parts":[{"text":"..."}]}}]} (Gemini)
+            else if (obj.candidates && obj.candidates[0] && obj.candidates[0].content && obj.candidates[0].content.parts && obj.candidates[0].content.parts[0])
+                token = obj.candidates[0].content.parts[0].text;
+            // Pattern: {"type":"content_block_delta","delta":{"text":"..."}} (Claude)
+            else if (obj.type === 'content_block_delta' && obj.delta && obj.delta.text !== undefined)
+                token = obj.delta.text;
+            // Pattern: {"text": "..."} or {"content": "..."}
+            else if (obj.text !== undefined) token = obj.text;
+            else if (obj.content !== undefined && typeof obj.content === 'string') token = obj.content;
+            // Pattern: {"delta": "..."} simple delta
+            else if (obj.delta !== undefined && typeof obj.delta === 'string') token = obj.delta;
+
+            if (token !== null) {
+                assembled += token;
+            }
+            // If no token pattern matched, skip (don't dump raw JSON)
+        } catch (e) {
+            // Non-JSON data: append as-is (plain text SSE)
+            assembled += dataStr;
+        }
+    }
+    return assembled;
+}
+
+function renderSseView(raw) {
+    var events = parseSSEEvents(raw);
+    if (events.length === 0) {
+        return '<div style="padding:20px;color:#888;">No SSE events found in content.</div>';
+    }
+
+    var assembled = assembleSSEContent(events);
+
+    // Categorize events: content tokens vs metadata/control events
+    var metaTypes = ['metadata', 'agent_updated', 'ping', 'error', 'done', 'heartbeat', 'status', 'message_persisted'];
+    var metaEvents = [];
+    var dataCount = 0;
+    for (var i = 0; i < events.length; i++) {
+        var evt = events[i];
+        if (evt.type && metaTypes.indexOf(evt.type) !== -1) {
+            metaEvents.push(evt);
+        } else {
+            // Also check if JSON data has no content token (metadata disguised as data event)
+            var isMeta = false;
+            if (evt.dataStr) {
+                try {
+                    var obj = JSON.parse(evt.dataStr);
+                    if (obj.trace_id !== undefined && obj.answer === undefined && obj.text === undefined && obj.content === undefined) {
+                        metaEvents.push(evt);
+                        isMeta = true;
+                    }
+                } catch (e) { }
+            }
+            if (!isMeta) dataCount++;
+        }
+    }
+
+    var html = '';
+
+    // Tab bar
+    html += '<div class="sse-tabs">';
+    html += '<button class="sse-tab active" onclick="switchSseTab(this, \'assembled\')">Assembled</button>';
+    html += '<button class="sse-tab" onclick="switchSseTab(this, \'events\')">Events (' + events.length + ')</button>';
+    if (metaEvents.length > 0) {
+        html += '<button class="sse-tab" onclick="switchSseTab(this, \'meta\')">Meta (' + metaEvents.length + ')</button>';
+    }
+    html += '</div>';
+
+    // === Assembled view ===
+    html += '<div class="sse-panel active" data-sse-panel="assembled">';
+    if (assembled.trim()) {
+        html += '<div class="sse-assembled-toolbar">';
+        html += '<span class="sse-stat">' + dataCount + ' data chunks</span>';
+        html += '<span class="sse-stat">' + assembled.length + ' chars</span>';
+        html += '<button class="btn" onclick="copySseAssembled()" style="background:#333;color:#aaa;font-size:11px;padding:4px 10px;border:none;border-radius:4px;cursor:pointer;">Copy</button>';
+        html += '</div>';
+        html += '<div class="sse-assembled-content" id="sseAssembledContent">';
+        html += renderSseMarkdown(assembled);
+        html += '</div>';
+    } else {
+        html += '<div style="padding:20px;color:#888;">No assembled text content found. Events may contain non-text data.</div>';
+    }
+    html += '</div>';
+
+    // === Meta tab ===
+    if (metaEvents.length > 0) {
+        html += '<div class="sse-panel" data-sse-panel="meta">';
+        html += '<div class="sse-meta-list">';
+        for (var m = 0; m < metaEvents.length; m++) {
+            var me = metaEvents[m];
+            var meType = me.type || 'data';
+            var meData = me.dataStr;
+            // Try to pretty-print JSON
+            try { meData = JSON.stringify(JSON.parse(meData), null, 2); } catch (ex) { }
+            html += '<div class="sse-meta-card">';
+            html += '<div class="sse-meta-card-header">';
+            html += '<span class="sse-event-badge sse-type-meta">' + escapeHtml(meType) + '</span>';
+            html += '</div>';
+            html += '<pre class="sse-meta-card-body">' + escapeHtml(meData) + '</pre>';
+            html += '</div>';
+        }
+        html += '</div>';
+        html += '</div>';
+    }
+
+    // === Events table view ===
+    html += '<div class="sse-panel" data-sse-panel="events">';
+    // Filter bar
+    html += '<div class="sse-filter-bar">';
+    html += '<input type="text" class="sse-filter-input" id="sseEventFilter" placeholder="Filter events... (text or /regex/)" oninput="filterSseEvents()">';
+    html += '<span class="sse-filter-count" id="sseFilterCount">' + events.length + ' / ' + events.length + '</span>';
+    html += '</div>';
+    html += '<div class="sse-events-scroll">';
+    html += '<table class="sse-events-table">';
+    html += '<thead><tr><th>#</th><th>Event</th><th>Data</th></tr></thead>';
+    html += '<tbody id="sseEventsBody">';
+    for (var e = 0; e < events.length; e++) {
+        var ev = events[e];
+        var typeLabel = ev.type || 'message';
+        var typeClass = 'sse-type-' + (ev.type === 'metadata' ? 'meta' : ev.type === 'agent_updated' ? 'meta' : 'data');
+        var dataPreview = ev.dataStr;
+        // Try to format JSON inline
+        try {
+            var parsed = JSON.parse(dataPreview);
+            dataPreview = JSON.stringify(parsed);
+        } catch (ex) { }
+        var displayData = dataPreview.length > 200 ? dataPreview.substring(0, 200) + '...' : dataPreview;
+        // Store searchable text in data attribute for filtering
+        var searchText = (typeLabel + ' ' + ev.raw).replace(/"/g, '&quot;');
+        html += '<tr class="sse-event-row" onclick="toggleSseEventDetail(this)" data-sse-search="' + searchText + '">';
+        html += '<td class="sse-event-num">' + (e + 1) + '</td>';
+        html += '<td><span class="sse-event-badge ' + typeClass + '">' + escapeHtml(typeLabel) + '</span></td>';
+        html += '<td class="sse-event-data">' + escapeHtml(displayData) + '</td>';
+        html += '</tr>';
+        // Hidden detail row
+        html += '<tr class="sse-event-detail" style="display:none;">';
+        html += '<td colspan="3"><pre class="sse-event-raw">' + escapeHtml(ev.raw) + '</pre></td>';
+        html += '</tr>';
+    }
+    html += '</tbody></table>';
+    html += '</div>';
+    html += '</div>';
+
+    return html;
+}
+
+function switchSseTab(btn, panelName) {
+    var container = btn.closest('#bodySseContainer') || document.getElementById('bodySseContainer');
+    if (!container) return;
+    container.querySelectorAll('.sse-tab').forEach(function (t) { t.classList.remove('active'); });
+    btn.classList.add('active');
+    container.querySelectorAll('.sse-panel').forEach(function (p) { p.classList.remove('active'); });
+    var panel = container.querySelector('.sse-panel[data-sse-panel="' + panelName + '"]');
+    if (panel) panel.classList.add('active');
+}
+
+function toggleSseEventDetail(row) {
+    var detail = row.nextElementSibling;
+    if (detail && detail.classList.contains('sse-event-detail')) {
+        detail.style.display = detail.style.display === 'none' ? 'table-row' : 'none';
+        row.classList.toggle('expanded');
+    }
+}
+
+function filterSseEvents() {
+    var input = document.getElementById('sseEventFilter');
+    var tbody = document.getElementById('sseEventsBody');
+    var countEl = document.getElementById('sseFilterCount');
+    if (!input || !tbody) return;
+
+    var query = input.value.trim();
+    var rows = tbody.querySelectorAll('.sse-event-row');
+    var total = rows.length;
+    var visible = 0;
+
+    // Check if query is a regex pattern: /pattern/ or /pattern/flags
+    var useRegex = false;
+    var regex = null;
+    var regexMatch = query.match(/^\/(.+)\/([gimsuy]*)$/);
+    if (regexMatch) {
+        try {
+            regex = new RegExp(regexMatch[1], regexMatch[2] || 'i');
+            useRegex = true;
+        } catch (e) {
+            // Invalid regex, fall back to text search
+        }
+    }
+
+    for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        var detail = row.nextElementSibling;
+        var searchText = row.getAttribute('data-sse-search') || '';
+
+        var matches = true;
+        if (query) {
+            if (useRegex && regex) {
+                matches = regex.test(searchText);
+            } else {
+                matches = searchText.toLowerCase().indexOf(query.toLowerCase()) !== -1;
+            }
+        }
+
+        row.style.display = matches ? '' : 'none';
+        if (detail && detail.classList.contains('sse-event-detail')) {
+            if (!matches) {
+                detail.style.display = 'none';
+                row.classList.remove('expanded');
+            }
+        }
+        if (matches) visible++;
+    }
+
+    if (countEl) {
+        countEl.textContent = visible + ' / ' + total;
+        countEl.style.color = (query && visible < total) ? '#ffa726' : '#888';
+    }
+}
+
+function copySseAssembled() {
+    var el = document.getElementById('sseAssembledContent');
+    if (!el) return;
+    // Get text content (strip HTML)
+    var text = assembleSSEContent(parseSSEEvents(currentBodyContent));
+    navigator.clipboard.writeText(text).then(function () {
+        var btn = el.parentElement.querySelector('button');
+        if (btn) {
+            var orig = btn.textContent;
+            btn.textContent = 'Copied!';
+            setTimeout(function () { btn.textContent = orig; }, 1500);
+        }
+    });
+}
+
+var _sseCodeBlockId = 0;
+
+function renderSseMarkdown(text) {
+    if (!text) return '';
+
+    // 1. Extract fenced code blocks first (before any escaping)
+    var codeBlocks = [];
+    var result = text.replace(/```(\w*)\n([\s\S]*?)```/g, function (match, lang, code) {
+        var idx = codeBlocks.length;
+        codeBlocks.push({ lang: lang, code: code.replace(/\n$/, '') });
+        return '\n__SSE_CODE_' + idx + '__\n';
+    });
+
+    // 2. Escape HTML in remaining text
+    result = escapeHtml(result);
+
+    // 3. Horizontal rules: --- or *** or ___ (on their own line)
+    result = result.replace(/^[ \t]*([-*_]){3,}[ \t]*$/gm, '<hr class="sse-divider">');
+
+    // 4. Headings
+    result = result.replace(/^(#{1,6})\s+(.+)$/gm, function (m, hashes, title) {
+        var level = hashes.length;
+        return '<h' + level + ' class="sse-heading">' + title + '</h' + level + '>';
+    });
+
+    // 5. Bold then italic (order matters)
+    result = result.replace(/\*\*([\s\S]*?)\*\*/g, '<strong>$1</strong>');
+    result = result.replace(/\*([^\*\n]+)\*/g, '<em>$1</em>');
+
+    // 6. Inline code
+    result = result.replace(/`([^`\n]+)`/g, '<code class="sse-inline-code">$1</code>');
+
+    // 7. Links [text](url)
+    result = result.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" class="sse-link">$1</a>');
+
+    // 8. List items (bullet and numbered)
+    result = result.replace(/^[ \t]*[*+-]\s+(.+)$/gm, '<li>$1</li>');
+    result = result.replace(/^[ \t]*\d+\.\s+(.+)$/gm, '<li>$1</li>');
+    // Wrap consecutive <li> in <ul>
+    result = result.replace(/(<li>[\s\S]*?<\/li>\n*)+/g, function (match) {
+        return '<ul class="sse-list">' + match + '</ul>';
+    });
+
+    // 9. Paragraphs / line breaks
+    var lines = result.split('\n');
+    var out = [];
+    for (var i = 0; i < lines.length; i++) {
+        var line = lines[i].trim();
+        if (line.match(/^<(h\d|ul|li|hr|pre|div)/) || line.match(/<\/(ul|h\d|div)>/) || line.includes('__SSE_CODE_')) {
+            out.push(line);
+        } else if (line !== '') {
+            out.push('<p class="sse-paragraph">' + line + '</p>');
+        }
+    }
+    result = out.join('\n');
+    // Clean up empty paragraphs
+    result = result.replace(/<p class="sse-paragraph"><\/p>/g, '');
+
+    // 10. Build code blocks with line numbers, syntax highlighting, copy button
+    for (var c = 0; c < codeBlocks.length; c++) {
+        var block = codeBlocks[c];
+        var blockId = 'sseCode_' + (++_sseCodeBlockId);
+        var langUpper = (block.lang || '').toUpperCase();
+        var highlighted = highlightSseCode(block.code, block.lang);
+        var highlightedLines = highlighted.split('\n');
+
+        var codeHtml = '<div class="sse-codeblock-wrapper">';
+        if (langUpper) {
+            codeHtml += '<div class="sse-codeblock-header"><span class="sse-codeblock-lang">' + langUpper + '</span>';
+        } else {
+            codeHtml += '<div class="sse-codeblock-header">';
+        }
+        codeHtml += '<button class="sse-codeblock-copy" onclick="copySseCodeBlock(\'' + blockId + '\')">Copy</button></div>';
+        codeHtml += '<pre class="sse-codeblock" id="' + blockId + '"><code>';
+        for (var ln = 0; ln < highlightedLines.length; ln++) {
+            codeHtml += '<span class="sse-code-line"><span class="sse-line-num">' + (ln + 1) + '</span>' + highlightedLines[ln] + '</span>';
+        }
+        codeHtml += '</code></pre>';
+        // Store raw code for copy
+        codeHtml += '<textarea class="sse-code-raw" id="' + blockId + '_raw" style="display:none;">' + escapeHtml(block.code) + '</textarea>';
+        codeHtml += '</div>';
+
+        result = result.replace(new RegExp('(?:<p class="sse-paragraph">)?__SSE_CODE_' + c + '__(?:</p>)?', 'g'), codeHtml);
+    }
+
+    return result;
+}
+
+function highlightSseCode(code, lang) {
+    var escaped = escapeHtml(code);
+    if (!lang) return escaped;
+    var l = lang.toLowerCase();
+
+    if (l === 'html' || l === 'xml' || l === 'svg' || l === 'jinja' || l === 'django' || l === 'twig') {
+        // Template tags {{ ... }} and {% ... %}
+        escaped = escaped.replace(/(\{\{[\s\S]*?\}\}|\{%[\s\S]*?%\})/g, '<span class="sse-hl-template">$1</span>');
+        // HTML tags and attributes
+        escaped = escaped.replace(/(&lt;\/?)([\w-]+)/g, '$1<span class="sse-hl-tag">$2</span>');
+        escaped = escaped.replace(/([\w-]+)(=)(&quot;[^&]*&quot;)/g, '<span class="sse-hl-attr">$1</span>$2<span class="sse-hl-string">$3</span>');
+        escaped = escaped.replace(/(&gt;)/g, '<span class="sse-hl-bracket">$1</span>');
+        escaped = escaped.replace(/(&lt;)(\/?)(?!span)/g, '<span class="sse-hl-bracket">$1</span>$2');
+        return escaped;
+    }
+
+    if (l === 'json') {
+        escaped = escaped.replace(/(&quot;[^&]*&quot;)(\s*:)/g, '<span class="sse-hl-key">$1</span>$2');
+        escaped = escaped.replace(/:(\s*)(&quot;[^&]*&quot;)/g, ':$1<span class="sse-hl-string">$2</span>');
+        escaped = escaped.replace(/\b(true|false)\b/g, '<span class="sse-hl-bool">$1</span>');
+        escaped = escaped.replace(/\b(null)\b/g, '<span class="sse-hl-null">$1</span>');
+        escaped = escaped.replace(/\b(\d+(?:\.\d+)?)\b/g, '<span class="sse-hl-num">$1</span>');
+        return escaped;
+    }
+
+    if (l === 'python' || l === 'py') {
+        escaped = escaped.replace(/(#[^\n]*)/g, '<span class="sse-hl-comment">$1</span>');
+        escaped = escaped.replace(/\b(def|class|import|from|return|if|else|elif|for|while|try|except|with|as|in|not|and|or|is|None|True|False|self|yield|lambda|raise|pass|break|continue|async|await)\b/g, '<span class="sse-hl-keyword">$1</span>');
+        escaped = escaped.replace(/(&quot;[^&]*&quot;|&#39;[^&]*&#39;)/g, '<span class="sse-hl-string">$1</span>');
+        return escaped;
+    }
+
+    if (l === 'javascript' || l === 'js' || l === 'typescript' || l === 'ts') {
+        escaped = escaped.replace(/(\/\/[^\n]*)/g, '<span class="sse-hl-comment">$1</span>');
+        escaped = escaped.replace(/\b(const|let|var|function|return|if|else|for|while|class|import|export|from|new|this|async|await|try|catch|throw|typeof|instanceof|null|undefined|true|false)\b/g, '<span class="sse-hl-keyword">$1</span>');
+        escaped = escaped.replace(/(&quot;[^&]*&quot;|&#39;[^&]*&#39;|`[^`]*`)/g, '<span class="sse-hl-string">$1</span>');
+        return escaped;
+    }
+
+    if (l === 'css' || l === 'scss' || l === 'less') {
+        escaped = escaped.replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="sse-hl-comment">$1</span>');
+        escaped = escaped.replace(/([\w-]+)(\s*:)/g, '<span class="sse-hl-attr">$1</span>$2');
+        escaped = escaped.replace(/(#[0-9a-fA-F]{3,8})\b/g, '<span class="sse-hl-num">$1</span>');
+        return escaped;
+    }
+
+    if (l === 'bash' || l === 'sh' || l === 'shell' || l === 'zsh') {
+        escaped = escaped.replace(/(#[^\n]*)/g, '<span class="sse-hl-comment">$1</span>');
+        escaped = escaped.replace(/\b(if|then|else|elif|fi|for|while|do|done|case|esac|function|return|exit|echo|export|source|cd|ls|rm|cp|mv|mkdir|cat|grep|sed|awk|curl|sudo|apt|pip|npm|git)\b/g, '<span class="sse-hl-keyword">$1</span>');
+        escaped = escaped.replace(/(&quot;[^&]*&quot;|&#39;[^&]*&#39;)/g, '<span class="sse-hl-string">$1</span>');
+        return escaped;
+    }
+
+    if (l === 'sql') {
+        escaped = escaped.replace(/(--[^\n]*)/g, '<span class="sse-hl-comment">$1</span>');
+        escaped = escaped.replace(/\b(SELECT|FROM|WHERE|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER|JOIN|LEFT|RIGHT|INNER|OUTER|ON|AND|OR|NOT|IN|IS|NULL|AS|ORDER|BY|GROUP|HAVING|LIMIT|OFFSET|SET|INTO|VALUES|TABLE|INDEX|VIEW|DISTINCT|UNION|ALL|EXISTS|BETWEEN|LIKE|CASE|WHEN|THEN|ELSE|END|COUNT|SUM|AVG|MAX|MIN)\b/gi, '<span class="sse-hl-keyword">$1</span>');
+        escaped = escaped.replace(/(&#39;[^&]*&#39;)/g, '<span class="sse-hl-string">$1</span>');
+        return escaped;
+    }
+
+    // Generic: highlight strings and comments
+    escaped = escaped.replace(/(\/\/[^\n]*|#[^\n]*)/g, '<span class="sse-hl-comment">$1</span>');
+    escaped = escaped.replace(/(&quot;[^&]*&quot;|&#39;[^&]*&#39;)/g, '<span class="sse-hl-string">$1</span>');
+    return escaped;
+}
+
+function copySseCodeBlock(blockId) {
+    var raw = document.getElementById(blockId + '_raw');
+    if (!raw) return;
+    navigator.clipboard.writeText(raw.value).then(function () {
+        var wrapper = raw.closest('.sse-codeblock-wrapper');
+        var btn = wrapper ? wrapper.querySelector('.sse-codeblock-copy') : null;
+        if (btn) {
+            var orig = btn.textContent;
+            btn.textContent = 'Copied!';
+            setTimeout(function () { btn.textContent = orig; }, 1500);
+        }
+    });
 }
