@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>HAR-Viewer</title>
+    <title>HAR-Analyzer</title>
     <link rel="icon"
         href="data:image/svg+xml;utf8,%3Csvg%20width%3D%22512%22%20height%3D%22512%22%20viewBox%3D%220%200%20512%20512%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%20%20%3C!--%20Background%20Shield%2FContainer%20--%3E%0A%20%20%3Crect%20x%3D%2248%22%20y%3D%2248%22%20width%3D%22416%22%20height%3D%22416%22%20rx%3D%2280%22%20fill%3D%22url(%23paint0_linear)%22%20%2F%3E%0A%20%20%0A%20%20%3C!--%20Subtle%20Grid%20Pattern%20--%3E%0A%20%20%3Cpath%20d%3D%22M120%2048V464M200%2048V464M280%2048V464M360%2048V464%22%20stroke%3D%22white%22%20stroke-opacity%3D%220.05%22%20stroke-width%3D%222%22%2F%3E%0A%20%20%0A%20%20%3C!--%20Waterfall%20Chart%20Elements%20(The%20HAR%20Data)%20--%3E%0A%20%20%3C!--%20Request%201%20--%3E%0A%20%20%3Crect%20x%3D%22120%22%20y%3D%22140%22%20width%3D%2280%22%20height%3D%2224%22%20rx%3D%2212%22%20fill%3D%22%2306B6D4%22%20fill-opacity%3D%220.9%22%20%2F%3E%0A%20%20%3C!--%20Request%202%20--%3E%0A%20%20%3Crect%20x%3D%22180%22%20y%3D%22190%22%20width%3D%22140%22%20height%3D%2224%22%20rx%3D%2212%22%20fill%3D%22%2322D3EE%22%20fill-opacity%3D%220.8%22%20%2F%3E%0A%20%20%3C!--%20Request%203%20--%3E%0A%20%20%3Crect%20x%3D%22240%22%20y%3D%22240%22%20width%3D%22100%22%20height%3D%2224%22%20rx%3D%2212%22%20fill%3D%22%2306B6D4%22%20fill-opacity%3D%220.9%22%20%2F%3E%0A%20%20%3C!--%20Request%204%20--%3E%0A%20%20%3Crect%20x%3D%22300%22%20y%3D%22290%22%20width%3D%2260%22%20height%3D%2224%22%20rx%3D%2212%22%20fill%3D%22%2322D3EE%22%20fill-opacity%3D%220.8%22%20%2F%3E%0A%0A%20%20%3C!--%20Magnifying%20Glass%20(The%20Viewer%2FInspector)%20--%3E%0A%20%20%3Cg%20filter%3D%22url(%23shadow)%22%3E%0A%20%20%20%20%3C!--%20Lens%20--%3E%0A%20%20%20%20%3Ccircle%20cx%3D%22256%22%20cy%3D%22240%22%20r%3D%22100%22%20stroke%3D%22white%22%20stroke-width%3D%2228%22%20%2F%3E%0A%20%20%20%20%3C!--%20Reflection%20on%20Lens%20--%3E%0A%20%20%20%20%3Cpath%20d%3D%22M210%20180C220%20170%20240%20165%20260%20165%22%20stroke%3D%22white%22%20stroke-width%3D%228%22%20stroke-linecap%3D%22round%22%20stroke-opacity%3D%220.4%22%20%2F%3E%0A%20%20%20%20%3C!--%20Handle%20--%3E%0A%20%20%20%20%3Cpath%20d%3D%22M325%20310L400%20385%22%20stroke%3D%22white%22%20stroke-width%3D%2232%22%20stroke-linecap%3D%22round%22%20%2F%3E%0A%20%20%3C%2Fg%3E%0A%0A%20%20%3C!--%20Definitions%20--%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22paint0_linear%22%20x1%3D%2248%22%20y1%3D%2248%22%20x2%3D%22464%22%20y2%3D%22464%22%20gradientUnits%3D%22userSpaceOnUse%22%3E%0A%20%20%20%20%20%20%3Cstop%20stop-color%3D%22%234F46E5%22%20%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%233730A3%22%20%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%20%20%0A%20%20%20%20%3Cfilter%20id%3D%22shadow%22%20x%3D%22120%22%20y%3D%22110%22%20width%3D%22320%22%20height%3D%22320%22%20filterUnits%3D%22userSpaceOnUse%22%20color-interpolation-filters%3D%22sRGB%22%3E%0A%20%20%20%20%20%20%3CfeFlood%20flood-opacity%3D%220%22%20result%3D%22BackgroundImageFix%22%2F%3E%0A%20%20%20%20%20%20%3CfeColorMatrix%20in%3D%22SourceAlpha%22%20type%3D%22matrix%22%20values%3D%220%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200%20127%200%22%20result%3D%22hardAlpha%22%2F%3E%0A%20%20%20%20%20%20%3CfeOffset%20dy%3D%2210%22%2F%3E%0A%20%20%20%20%20%20%3CfeGaussianBlur%20stdDeviation%3D%2215%22%2F%3E%0A%20%20%20%20%20%20%3CfeComposite%20in2%3D%22hardAlpha%22%20operator%3D%22out%22%2F%3E%0A%20%20%20%20%20%20%3CfeColorMatrix%20type%3D%22matrix%22%20values%3D%220%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200.25%200%22%2F%3E%0A%20%20%20%20%20%20%3CfeBlend%20mode%3D%22normal%22%20in2%3D%22BackgroundImageFix%22%20result%3D%22effect1_dropShadow%22%2F%3E%0A%20%20%20%20%20%20%3CfeBlend%20mode%3D%22normal%22%20in%3D%22SourceGraphic%22%20in2%3D%22effect1_dropShadow%22%20result%3D%22shape%22%2F%3E%0A%20%20%20%20%3C%2Ffilter%3E%0A%20%20%3C%2Fdefs%3E%0A%3C%2Fsvg%3E">
     <link rel="stylesheet" href="styles/main.css">
@@ -10,8 +10,8 @@
 
 <body>
 
-    <a href="https://github.com/ngtanthanh-qc/HAR-viewer" target="_blank" class="github-link"
-        title="HAR-Viewer on GitHub">
+    <a href="https://github.com/ngtanthanh-qc/HAR-analyzer" target="_blank" class="github-link"
+        title="HAR-Analyzer on GitHub">
         <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path
                 d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
@@ -148,6 +148,8 @@
                         style="display: none; margin-right: 10px;">🔍 Insights</button>
                     <button class="btn" id="aiChatBtn" onclick="openAiChatPanel()"
                         style="display: none; margin-right: 10px;">✨ AI Chat</button>
+                    <button class="btn" id="aiAnalyticsBtn" onclick="openAiAnalyticsPanel()"
+                        style="display: none; margin-right: 10px;">🤖 AI Analytics</button>
                     <div id="exportDropdown" class="export-dropdown" style="display: none;">
                         <button class="btn" onclick="toggleExportMenu(event)" style="margin-right: 10px;">📦 Export
                             ▾</button>
@@ -228,7 +230,7 @@
                         </svg>
                         <div style="text-align: left; margin-left: 20px; margin-bottom: 20px; width: 280px;">
                             <div style="font-size: 28px; font-weight: bold; color: #4fc3f7; margin-bottom: 8px;">
-                                HAR-Viewer</div>
+                                HAR-Analyzer</div>
                             <div style="font-size: 14px; color: #888;">Visualize and analyze HTTP requests from HAR
                                 archives or our custom JSON format.</div>
                         </div>
@@ -263,10 +265,10 @@
                         </div>
                     </div>
                     <div style="color:#aaa;font-size:16px;margin-bottom:5px;">2. Custom JSON format:
-                        <a href="https://github.com/omega0verride/HAR-Viewer?tab=readme-ov-file#2-custom-json-format"
+                        <a href="https://github.com/ngtanthanh-qc/HAR-analyzer?tab=readme-ov-file#2-custom-json-format"
                             target="_blank" rel="noopener" style="color:#4fc3f7;font-size:11px;margin-left:10px;">Spec
                             on GitHub</a>
-                        <a href="https://github.com/omega0verride/HAR-Viewer/tree/main/samples/" target="_blank"
+                        <a href="https://github.com/ngtanthanh-qc/HAR-analyzer/tree/main/samples/" target="_blank"
                             rel="noopener" style="color:#4fc3f7;font-size:11px;margin-left:10px;">Samples</a>
                     </div>
                     <div style="color:#666;font-size:11px;margin-top:6px;">
@@ -594,6 +596,28 @@
         <div class="insights-body" id="insightsBody"></div>
     </div>
 
+    <!-- AI Chat Analytics Panel -->
+    <div class="insights-backdrop" id="aiAnalyticsBackdrop" onclick="closeAiAnalyticsPanel()"></div>
+    <div class="insights-panel ai-analytics-panel" id="aiAnalyticsPanel">
+        <div class="insights-header">
+            <div class="insights-header-title">🤖 AI Chat Analytics</div>
+            <button class="insights-close" onclick="closeAiAnalyticsPanel()">✕</button>
+        </div>
+        <div class="insights-tabs" id="aiAnalyticsTabs">
+            <button class="insights-tab active" data-tab="aia-overview"
+                onclick="switchAiAnalyticsTab('aia-overview')">Overview</button>
+            <button class="insights-tab" data-tab="aia-ttft"
+                onclick="switchAiAnalyticsTab('aia-ttft')">⏱ TTFT</button>
+            <button class="insights-tab" data-tab="aia-speed"
+                onclick="switchAiAnalyticsTab('aia-speed')">⚡ Speed</button>
+            <button class="insights-tab" data-tab="aia-compare"
+                onclick="switchAiAnalyticsTab('aia-compare')">⇄ Compare</button>
+            <button class="insights-tab" data-tab="aia-quality"
+                onclick="switchAiAnalyticsTab('aia-quality')">✓ Quality</button>
+        </div>
+        <div class="insights-body" id="aiAnalyticsBody"></div>
+    </div>
+
     <div class="measure-panel" id="measurePanel">
         <div class="measure-item"><span class="measure-label">Total:</span><span class="measure-value"
                 id="measureTotal">--</span></div>
@@ -684,6 +708,7 @@
     <script src="scripts/export.js"></script>
     <script src="scripts/ai-chat.js"></script>
     <script src="scripts/insights.js"></script>
+    <script src="scripts/ai-analytics.js"></script>
     <script src="scripts/selection.js"></script>
     <script src="scripts/filters.js"></script>
     <script src="scripts/fiddler-export.js"></script>

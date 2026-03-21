@@ -361,6 +361,7 @@ function processData(data) {
     document.getElementById('statsButton').style.display = 'inline-block';
     document.getElementById('insightsBtn').style.display = 'inline-block';
     document.getElementById('aiChatBtn').style.display = 'inline-block';
+    document.getElementById('aiAnalyticsBtn').style.display = 'inline-block';
     document.getElementById('exportDropdown').style.display = 'inline-block';
     document.getElementById('compareBtn').style.display = 'inline-block';
     setupStatsPopupHover();

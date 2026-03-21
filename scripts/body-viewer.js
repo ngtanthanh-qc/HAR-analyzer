@@ -51,9 +51,9 @@ function showBodyModal(type, content, id, mimeType = '', encoding = 'text', orig
     });
     updateBodySizeIndicator();
 
-    // Show SSE button if content looks like SSE (text/event-stream or has event:/data: lines)
+    // Show SSE button if content looks like SSE or Google streaming format
     const sseBtn = document.getElementById('sseBtn');
-    const looksSSE = mimeType.includes('event-stream') || /^(event|data):\s/m.test(content);
+    const looksSSE = mimeType.includes('event-stream') || /^(event|data):\s/m.test(content) || isGoogleStreamingFormat(content);
     sseBtn.style.display = looksSSE ? '' : 'none';
 
     // Show Decode button if content looks like base64
@@ -257,19 +257,24 @@ function setBodyFormat(format) {
                     contentEl.parentNode.insertBefore(sseEl, contentEl.nextSibling);
                 }
                 sseEl.style.display = 'block';
-                // Decode base64 if needed before parsing SSE
                 var sseRaw = currentBodyContent;
-                if (currentBodyEncoding === 'base64' || !/^(event|data):\s/m.test(sseRaw)) {
-                    try {
-                        var decoded = atob((currentBodyOriginal || sseRaw).trim());
-                        var bytes = Uint8Array.from(decoded, function(c) { return c.charCodeAt(0); });
-                        var utf8 = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
-                        if (/^(event|data):\s/m.test(utf8)) {
-                            sseRaw = utf8;
-                        }
-                    } catch (e) { }
+                // Try Google streaming format first
+                if (isGoogleStreamingFormat(sseRaw)) {
+                    sseEl.innerHTML = renderGoogleStreamView(sseRaw);
+                } else {
+                    // Decode base64 if needed before parsing SSE
+                    if (currentBodyEncoding === 'base64' || !/^(event|data):\s/m.test(sseRaw)) {
+                        try {
+                            var decoded = atob((currentBodyOriginal || sseRaw).trim());
+                            var bytes = Uint8Array.from(decoded, function(c) { return c.charCodeAt(0); });
+                            var utf8 = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+                            if (/^(event|data):\s/m.test(utf8)) {
+                                sseRaw = utf8;
+                            }
+                        } catch (e) { }
+                    }
+                    sseEl.innerHTML = renderSseView(sseRaw);
                 }
-                sseEl.innerHTML = renderSseView(sseRaw);
                 break;
             case 'hex':
                 let hex = '';
@@ -683,25 +688,67 @@ function parseSSEEvents(raw) {
 function assembleSSEContent(events) {
     var assembled = '';
     // Event types that are metadata, not content
-    var metaTypes = ['metadata', 'agent_updated', 'ping', 'error', 'done', 'heartbeat', 'status'];
+    var metaTypes = ['metadata', 'agent_updated', 'ping', 'error', 'done', 'heartbeat', 'status', 'message_persisted'];
+    // Skip non-content message types
+    var skipTypes = ['resume_conversation_token', 'input_message', 'title_generation', 'message_marker',
+                     'conversation_detail_metadata', 'request_options'];
     for (var i = 0; i < events.length; i++) {
         var evt = events[i];
         var dataStr = evt.dataStr;
         if (!dataStr || dataStr === '[DONE]') continue;
         // Skip known metadata event types
         if (evt.type && metaTypes.indexOf(evt.type) !== -1) continue;
+        if (evt.type === 'delta_encoding') continue;
         // Try to extract streaming token from JSON data
         try {
             var obj = JSON.parse(dataStr);
             var token = null;
+
+            // Skip non-content message types (ChatGPT web)
+            if (obj.type && skipTypes.indexOf(obj.type) !== -1) continue;
             // Skip if this looks like metadata (has trace_id, type but no content token)
             if (obj.trace_id !== undefined && token === null) continue;
+
+            // === ChatGPT Web: JSON Patch delta encoding ===
+            // v is array of patch operations: [{p:"/message/content/parts/0", o:"append", v:"text"}]
+            var patches = null;
+            if (Array.isArray(obj.v)) {
+                patches = obj.v;
+            } else if (obj.o === 'patch' && Array.isArray(obj.v)) {
+                patches = obj.v;
+            }
+            if (patches) {
+                for (var pi = 0; pi < patches.length; pi++) {
+                    var patch = patches[pi];
+                    if (patch && patch.o === 'append' && typeof patch.p === 'string' &&
+                        patch.p.indexOf('/parts/') !== -1 && typeof patch.v === 'string') {
+                        assembled += patch.v;
+                    }
+                }
+                continue;
+            }
+
+            // === ChatGPT Web: Full message snapshot (o="add") ===
+            if (obj.v && obj.v.message && obj.v.message.author) {
+                var msg = obj.v.message;
+                // Only extract assistant text from completed add operations
+                if (msg.author.role === 'assistant' && msg.content && msg.content.parts) {
+                    var partText = msg.content.parts[0];
+                    if (partText && typeof partText === 'string' && msg.status === 'finished_successfully') {
+                        // This is a complete snapshot, replace assembled
+                        assembled = partText;
+                    }
+                }
+                continue;
+            }
+
+            // === Standard SSE patterns ===
             // Pattern: {"answer": "..."} (custom agents)
             if (obj.answer !== undefined) token = obj.answer;
-            // Pattern: {"choices":[{"delta":{"content":"..."}}]} (OpenAI)
+            // Pattern: {"choices":[{"delta":{"content":"..."}}]} (OpenAI API)
             else if (obj.choices && obj.choices[0] && obj.choices[0].delta && obj.choices[0].delta.content !== undefined)
                 token = obj.choices[0].delta.content;
-            // Pattern: {"candidates":[{"content":{"parts":[{"text":"..."}]}}]} (Gemini)
+            // Pattern: {"candidates":[{"content":{"parts":[{"text":"..."}]}}]} (Gemini API)
             else if (obj.candidates && obj.candidates[0] && obj.candidates[0].content && obj.candidates[0].content.parts && obj.candidates[0].content.parts[0])
                 token = obj.candidates[0].content.parts[0].text;
             // Pattern: {"type":"content_block_delta","delta":{"text":"..."}} (Claude)
@@ -968,7 +1015,46 @@ function renderSseMarkdown(text) {
     // 7. Links [text](url)
     result = result.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" class="sse-link">$1</a>');
 
-    // 8. List items (bullet and numbered)
+    // 8. Tables: detect lines starting with | and parse as table
+    var tableBlocks = [];
+    result = result.replace(/((?:^[ \t]*\|.+\|[ \t]*$\n?){2,})/gm, function (block) {
+        var rows = block.trim().split('\n');
+        if (rows.length < 2) return block;
+
+        // Check if second row is separator (|---|---|)
+        var hasSeparator = /^\|[\s:]*[-]+[\s:]*(\|[\s:]*[-]+[\s:]*)*\|?$/.test(rows[1].trim());
+
+        var html = '<table class="sse-md-table">';
+
+        for (var r = 0; r < rows.length; r++) {
+            var row = rows[r].trim();
+            // Skip separator row
+            if (r === 1 && hasSeparator) continue;
+
+            var cells = row.split('|').filter(function (c, idx, arr) {
+                // Remove empty first/last from leading/trailing |
+                return !(idx === 0 && c.trim() === '') && !(idx === arr.length - 1 && c.trim() === '');
+            });
+
+            var tag = (r === 0 && hasSeparator) ? 'th' : 'td';
+            if (r === 0 && hasSeparator) html += '<thead>';
+            if (r === 0 && !hasSeparator) html += '<tbody>';
+            if (r === 1 && hasSeparator) html += '</thead><tbody>';
+
+            html += '<tr>';
+            for (var ci = 0; ci < cells.length; ci++) {
+                html += '<' + tag + '>' + cells[ci].trim() + '</' + tag + '>';
+            }
+            html += '</tr>';
+        }
+        html += '</tbody></table>';
+
+        var idx = tableBlocks.length;
+        tableBlocks.push(html);
+        return '\n__SSE_TABLE_' + idx + '__\n';
+    });
+
+    // 9. List items (bullet and numbered)
     result = result.replace(/^[ \t]*[*+-]\s+(.+)$/gm, '<li>$1</li>');
     result = result.replace(/^[ \t]*\d+\.\s+(.+)$/gm, '<li>$1</li>');
     // Wrap consecutive <li> in <ul>
@@ -981,7 +1067,7 @@ function renderSseMarkdown(text) {
     var out = [];
     for (var i = 0; i < lines.length; i++) {
         var line = lines[i].trim();
-        if (line.match(/^<(h\d|ul|li|hr|pre|div)/) || line.match(/<\/(ul|h\d|div)>/) || line.includes('__SSE_CODE_')) {
+        if (line.match(/^<(h\d|ul|li|hr|pre|div|table)/) || line.match(/<\/(ul|h\d|div|table)>/) || line.includes('__SSE_CODE_') || line.includes('__SSE_TABLE_')) {
             out.push(line);
         } else if (line !== '') {
             out.push('<p class="sse-paragraph">' + line + '</p>');
@@ -1016,6 +1102,11 @@ function renderSseMarkdown(text) {
         codeHtml += '</div>';
 
         result = result.replace(new RegExp('(?:<p class="sse-paragraph">)?__SSE_CODE_' + c + '__(?:</p>)?', 'g'), codeHtml);
+    }
+
+    // 11. Restore table blocks
+    for (var t = 0; t < tableBlocks.length; t++) {
+        result = result.replace(new RegExp('(?:<p class="sse-paragraph">)?__SSE_TABLE_' + t + '__(?:</p>)?', 'g'), tableBlocks[t]);
     }
 
     return result;
@@ -1099,4 +1190,244 @@ function copySseCodeBlock(blockId) {
             setTimeout(function () { btn.textContent = orig; }, 1500);
         }
     });
+}
+
+// ===== Google Proprietary Streaming Format =====
+// Used by gemini.google.com (not the API). Format:
+// )]}'  (XSS prefix)
+// <byte_count>\n<JSON_array>\n<byte_count>\n<JSON_array>...
+// Each JSON: [["wrb.fr", null, "<nested_json_string>"]]
+// Nested JSON[4] contains response arrays with cumulative text at [4][0][1][0]
+
+function isGoogleStreamingFormat(text) {
+    if (!text) return false;
+    var trimmed = text.trim();
+    // Content may have literal \" escapes (from HAR JSON-in-JSON)
+    return trimmed.startsWith(")]}'") && (trimmed.includes('"wrb.fr"') || trimmed.includes('\\"wrb.fr\\"'));
+}
+
+function parseGoogleStreamChunks(text) {
+    // Google streaming format has deeply nested JSON with multiple escape levels.
+    // After HAR JSON.parse, the string has:
+    //   \" = JSON string delimiter
+    //   \\\" = escaped quote within content (actual " in original text)
+    //   \\\\ = escaped backslash within content
+    // Regex can't reliably handle multi-level escaping, so we use a char walker.
+    var results = [];
+
+    // Find all [\"rc_xxx\",[\" markers and extract text until unescaped \"]
+    var marker = '\\",[\\"';
+    var rcMarker = '\\"rc_';
+    var pos = 0;
+
+    while (pos < text.length) {
+        // Find next rc_ reference
+        var rcPos = text.indexOf(rcMarker, pos);
+        if (rcPos === -1) break;
+
+        // Find the [\" that opens the text array after rc_id
+        var arrOpen = text.indexOf(marker, rcPos);
+        if (arrOpen === -1) { pos = rcPos + 4; continue; }
+
+        var textStart = arrOpen + marker.length;
+
+        // Walk forward, tracking escape level to find closing \"
+        var i = textStart;
+        var content = '';
+        while (i < text.length) {
+            if (text[i] === '\\' && i + 1 < text.length) {
+                if (text[i + 1] === '\\') {
+                    // Double backslash: could be escaped backslash or start of \\\"
+                    if (i + 2 < text.length && text[i + 2] === '\\' && i + 3 < text.length && text[i + 3] === '"') {
+                        // \\\" = escaped quote in content
+                        content += '"';
+                        i += 4;
+                    } else if (i + 2 < text.length && text[i + 2] === '\\' && i + 3 < text.length && text[i + 3] === '\\') {
+                        // \\\\ = escaped backslash in content
+                        content += '\\';
+                        i += 4;
+                    } else if (i + 2 < text.length && text[i + 2] === 'n') {
+                        // \\n = newline in content
+                        content += '\n';
+                        i += 3;
+                    } else if (i + 2 < text.length && text[i + 2] === 't') {
+                        // \\t = tab
+                        content += '\t';
+                        i += 3;
+                    } else {
+                        // \\\\ = literal backslash
+                        content += '\\';
+                        i += 2;
+                    }
+                } else if (text[i + 1] === '"') {
+                    // \" = end of string delimiter
+                    break;
+                } else if (text[i + 1] === 'n') {
+                    content += '\n';
+                    i += 2;
+                } else if (text[i + 1] === 't') {
+                    content += '\t';
+                    i += 2;
+                } else {
+                    content += text[i + 1];
+                    i += 2;
+                }
+            } else {
+                content += text[i];
+                i += 1;
+            }
+        }
+
+        if (content.length > 0) {
+            results.push(content);
+        }
+
+        pos = i + 1;
+    }
+
+    // Fallback: try unescaped format (direct JSON, not from HAR)
+    if (results.length === 0) {
+        var re = /\["rc_[^"]*",\["((?:[^"\\]|\\.)*)"/g;
+        var match;
+        while ((match = re.exec(text)) !== null) {
+            try {
+                results.push(JSON.parse('"' + match[1] + '"'));
+            } catch (e) {
+                results.push(match[1].replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\'));
+            }
+        }
+    }
+
+    return results;
+}
+
+function renderGoogleStreamView(raw) {
+    var textChunks = parseGoogleStreamChunks(raw);
+
+    if (textChunks.length === 0) {
+        return '<div style="padding:20px;color:#888;">Could not parse Google streaming response.</div>';
+    }
+
+    // Detect cumulative vs incremental
+    var isCumulative = false;
+    if (textChunks.length > 1) {
+        var first = textChunks[0];
+        var second = textChunks[1];
+        if (second.length > first.length && second.substring(0, Math.min(20, first.length)) === first.substring(0, Math.min(20, first.length))) {
+            isCumulative = true;
+        }
+    }
+
+    var finalText = isCumulative ? textChunks[textChunks.length - 1] : textChunks.join('');
+
+    var html = '';
+
+    // Tabs
+    html += '<div class="sse-tabs">';
+    html += '<button class="sse-tab active" onclick="switchSseTab(this, \'assembled\')">Assembled</button>';
+    html += '<button class="sse-tab" onclick="switchSseTab(this, \'chunks\')">Chunks (' + textChunks.length + ')</button>';
+    html += '</div>';
+
+    // Assembled
+    html += '<div class="sse-panel active" data-sse-panel="assembled">';
+    html += '<div class="sse-assembled-toolbar">';
+    html += '<span class="sse-stat">' + textChunks.length + ' chunks</span>';
+    html += '<span class="sse-stat">' + (isCumulative ? 'cumulative' : 'incremental') + '</span>';
+    html += '<span class="sse-stat">' + finalText.length + ' chars</span>';
+    html += '<button class="btn" onclick="copySseGoogleAssembled()" style="background:#333;color:#aaa;font-size:11px;padding:4px 10px;border:none;border-radius:4px;cursor:pointer;">Copy</button>';
+    html += '</div>';
+    html += '<div class="sse-assembled-content" id="sseAssembledContent">';
+    html += renderSseMarkdown(finalText);
+    html += '</div>';
+    html += '</div>';
+
+    // Chunks view - show incremental diffs
+    html += '<div class="sse-panel" data-sse-panel="chunks">';
+    html += '<div class="sse-filter-bar">';
+    html += '<input type="text" class="sse-filter-input" id="sseGoogleChunkFilter" placeholder="Filter chunks..." oninput="filterGoogleChunks()">';
+    html += '<span class="sse-filter-count" id="sseGoogleFilterCount">' + textChunks.length + ' / ' + textChunks.length + '</span>';
+    html += '</div>';
+    html += '<div class="sse-events-scroll">';
+    html += '<table class="sse-events-table">';
+    html += '<thead><tr><th>#</th><th>New Text</th><th>Total</th></tr></thead>';
+    html += '<tbody id="sseGoogleChunksBody">';
+
+    var prevText = '';
+    for (var i = 0; i < textChunks.length; i++) {
+        var chunk = textChunks[i];
+        var newText = isCumulative ? chunk.substring(prevText.length) : chunk;
+        var totalLen = isCumulative ? chunk.length : (prevText.length + chunk.length);
+        prevText = isCumulative ? chunk : prevText + chunk;
+
+        var displayNew = newText.length > 150 ? newText.substring(0, 150) + '...' : newText;
+        var searchText = newText.replace(/"/g, '&quot;');
+        html += '<tr class="sse-event-row" onclick="toggleSseEventDetail(this)" data-sse-search="' + searchText + '">';
+        html += '<td class="sse-event-num">' + (i + 1) + '</td>';
+        html += '<td class="sse-event-data" style="max-width:none;white-space:pre-wrap;word-break:break-word;"><span style="color:#81c784;">' + escapeHtml(displayNew) + '</span></td>';
+        html += '<td style="color:#666;font-size:11px;white-space:nowrap;">' + totalLen + ' ch</td>';
+        html += '</tr>';
+        html += '<tr class="sse-event-detail" style="display:none;">';
+        html += '<td colspan="3"><pre class="sse-event-raw">' + escapeHtml(newText) + '</pre></td>';
+        html += '</tr>';
+    }
+
+    html += '</tbody></table></div></div>';
+
+    // Store for copy
+    html += '<textarea id="sseGoogleAssembledRaw" style="display:none;">' + escapeHtml(finalText) + '</textarea>';
+
+    return html;
+}
+
+function copySseGoogleAssembled() {
+    var raw = document.getElementById('sseGoogleAssembledRaw');
+    if (!raw) return;
+    navigator.clipboard.writeText(raw.value).then(function () {
+        var toolbar = document.querySelector('.sse-assembled-toolbar');
+        var btn = toolbar ? toolbar.querySelector('button') : null;
+        if (btn) {
+            var orig = btn.textContent;
+            btn.textContent = 'Copied!';
+            setTimeout(function () { btn.textContent = orig; }, 1500);
+        }
+    });
+}
+
+function filterGoogleChunks() {
+    var input = document.getElementById('sseGoogleChunkFilter');
+    var tbody = document.getElementById('sseGoogleChunksBody');
+    var countEl = document.getElementById('sseGoogleFilterCount');
+    if (!input || !tbody) return;
+
+    var query = input.value.trim();
+    var rows = tbody.querySelectorAll('.sse-event-row');
+    var total = rows.length;
+    var visible = 0;
+
+    var useRegex = false;
+    var regex = null;
+    var regexMatch = query.match(/^\/(.+)\/([gimsuy]*)$/);
+    if (regexMatch) {
+        try { regex = new RegExp(regexMatch[1], regexMatch[2] || 'i'); useRegex = true; } catch (e) { }
+    }
+
+    for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        var detail = row.nextElementSibling;
+        var searchText = row.getAttribute('data-sse-search') || '';
+
+        var matches = !query || (useRegex && regex ? regex.test(searchText) : searchText.toLowerCase().indexOf(query.toLowerCase()) !== -1);
+
+        row.style.display = matches ? '' : 'none';
+        if (detail && detail.classList.contains('sse-event-detail') && !matches) {
+            detail.style.display = 'none';
+            row.classList.remove('expanded');
+        }
+        if (matches) visible++;
+    }
+
+    if (countEl) {
+        countEl.textContent = visible + ' / ' + total;
+        countEl.style.color = (query && visible < total) ? '#ffa726' : '#888';
+    }
 }

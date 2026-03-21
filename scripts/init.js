@@ -1,5 +1,5 @@
 function downloadSampleJson() {
-    fetch('https://raw.githubusercontent.com/omega0verride/HAR-Viewer/main/samples/custom/sample.json')
+    fetch('https://raw.githubusercontent.com/ngtanthanh-qc/HAR-analyzer/main/samples/custom/sample.json')
         .then(response => {
             if (!response.ok) throw new Error('Network response was not ok');
             return response.json();
@@ -29,6 +29,7 @@ document.addEventListener('keydown', e => {
         clearMeasure();
         closeHeadersModal();
         closeBodyModal();
+        closeAiAnalyticsPanel();
         clearAllSelections();
     }
     if (e.key === '+' || e.key === '=') zoomIn();

@@ -1,102 +1,152 @@
 <p align="center">
-  <img src="icon.svg" width="120" height="120" alt="HAR-Viewer">
+  <img src="icon.svg" width="120" height="120" alt="HAR-Analyzer">
 </p>
-<h1 align="center">HAR-Viewer (Upgraded Version)</h1>
-
-> **Disclaimer:** This project is an upgraded version of the original repository: [omega0verride/HAR-Viewer](https://github.com/omega0verride/HAR-Viewer). It has been heavily enhanced with new features for deep traffic analysis, comparisons, and exports while maintaining the single-file, zero-dependency philosophy.
+<h1 align="center">HAR-Analyzer</h1>
 
 <p align="center">
-  A single-file HTTP request timeline visualizer and analysis tool. Drop in a HAR or JSON file and get an interactive waterfall chart, performance insights, and diffing of your HTTP traffic — no server, no dependencies, no install.
+  <em>Forked from <a href="https://github.com/omega0verride/HAR-Viewer">omega0verride/HAR-Viewer</a> and evolved into a full-featured HTTP traffic analysis toolkit.</em>
 </p>
+
+<p align="center">
+  Analyze HTTP traffic from HAR or JSON files with an interactive waterfall timeline, AI streaming decoder, performance insights, chatbot analytics, and traffic diffing — all client-side, zero dependencies.
+</p>
+
+---
+
+## What changed from HAR-Viewer?
+
+HAR-Analyzer is not just a viewer — it's a diagnostic tool. Key additions beyond the original:
+
+- **SSE Streaming Decoder** — Reconstruct AI chatbot responses from SSE, ChatGPT JSON Patch, and Google proprietary streaming formats
+- **AI Chat Analytics** — TTFT, tokens/sec, quality checks across all streaming requests
+- **Modular architecture** — Refactored from a single 8700-line HTML file into 14 focused JS modules + separated CSS
+- **Multi-format support** — OpenAI API, ChatGPT Web, Claude, Gemini API, Gemini Web, custom agents
+- Everything else: diff/compare, performance insights, Fiddler/cURL/Postman export, AI chat assistant
 
 ## Quick Start
 
-1. Download or clone this repository
-2. Open `index.html` in any modern browser
-3. Drop a HAR or JSON file onto the page (or click 'Select File' to browse)
+1. Clone: `git clone https://github.com/ngtanthanh-qc/HAR-analyzer.git`
+2. Open `index.html` in a browser (or serve via local HTTP server)
+3. Drop a HAR or JSON file onto the page
 
-That's it. Everything runs client-side in a single HTML file.
+No build step. No npm install. No server required.
 
-> **Note:** The single-file approach is intentional. No build step, no dependencies, no npm install — just drop the HTML file anywhere and it works. Sometimes the simplest solution is the best one.
+## Project Structure
 
-## Features & Enhancements
+```
+HAR-Analyzer/
+├── index.html              # HTML markup (~700 lines)
+├── styles/
+│   └── main.css            # All styles
+├── scripts/
+│   ├── core.js             # Global state & utilities
+│   ├── data-loader.js      # HAR/JSON parsing & data processing
+│   ├── body-viewer.js      # Body display (RAW/JSON/XML/HTML/Image/HEX/SSE)
+│   ├── timeline.js         # Waterfall timeline & zoom
+│   ├── detail-panel.js     # Request detail panel & headers
+│   ├── diff.js             # HAR compare/diff engine
+│   ├── export.js           # Export (cURL, Postman)
+│   ├── ai-chat.js          # AI Chat assistant
+│   ├── ai-analytics.js     # AI streaming analytics (TTFT, speed, quality)
+│   ├── insights.js         # Performance insights (7 tabs)
+│   ├── selection.js        # Row selection & multi-select
+│   ├── filters.js          # Request filtering & regex
+│   ├── fiddler-export.js   # Fiddler AutoResponder export + ZIP
+│   └── init.js             # Initialization & keyboard shortcuts
+└── samples/
+    ├── har/                # Sample HAR files (Gemini, ChatGPT, etc.)
+    └── custom/             # Sample custom JSON files
+```
 
-This upgraded version includes several advanced features over the original:
+## Features
 
-- **AI Chat Assistant** ✨ — Ask an AI to analyze your HAR profile! Supports real-time token streaming (SSE) with Claude, Gemini, ChatGPT/OpenAI, Grok, and Azure. Find bottlenecks, caching gaps, and errors using natural language prompts without leaving the viewer.
-- **HAR Diff / Compare Mode** ✨ — Load a second file to compare before/after data. Highlights added, removed, changed, and identical requests with side-by-side details, duration deltas, and size deltas.
-- **Performance Insights** ✨ — Analyze your traffic with 7 insight tabs: Overview (P50/P95/P99, status counts), top Slowest & Largest requests, Host grouping, Status/Type distribution, Duplicate detection, and Issues scanner (missing cache headers, uncompressed responses, HTTP errors).
-- **Advanced Export Menu** ✨ — Export your requests exactly how you need them:
-  - **Fiddler Rules (.farx)**: Generate Fiddler AutoResponder rules along with `.dat` files for easy mock environments.
-  - **cURL Script (.sh)**: Export selected or all requests as a bash script with `curl` commands (includes headers and body).
-  - **Postman Collection (.json)**: Generate a Postman Collection v2.1 file with parsed URLs, headers, bodies, and response examples.
-- **Enhanced Body Viewer** ✨ — Resizable dialog (drag the left edge), VSCode-like **JSON Syntax Highlighting** with line numbers, and formatted viewing for RAW, XML, HTML, Image, and HEX.
-- **Base64 Decoding** ✨ — Automatic and reliable detection of Base64 encoded bodies (such as images, SVGs, or explicitly encoded content in HARs) and proper rendering in the UI without getting corrupted.
+### SSE Streaming Decoder
 
-### Core Features
+View AI chatbot streaming responses as readable content instead of raw event data.
 
-- **Waterfall timeline** — visualize request timing with start, response, and end markers
-- **HAR support** — load `.har` files exported from Chrome DevTools, Firefox, or any HAR-compliant tool
-- **JSON support** — use a simple JSON array/object format for custom instrumentation
-- **Request details** — click any request to inspect headers, body content, and timing
-- **Thread grouping** — see which requests ran on which threads
-- **Multi-select** — click, Ctrl+click, Shift+click, or Ctrl+A to select rows
-- **Zoom** — zoom into selections, scroll to zoom, or use the slider; zoom-to-fit button
-- **Content type detection** — automatic type column (JSON, XML, HTML, IMG, JS, CSS, etc.)
-- **Zero dependencies** — single HTML file, no build step, no server required
-- **Dark theme** — easy on the eyes
+- **Assembled View** — Full AI response rendered as Markdown (code blocks with syntax highlighting + line numbers + copy, tables, headings, lists, dividers)
+- **Events Table** — All SSE events with type badges, filterable by text or `/regex/`
+- **Meta Tab** — Metadata events (trace_id, agent_updated, message_persisted) in formatted cards
 
-## Screenshots
+**Auto-detected streaming formats:**
 
-**JSON Syntax Highlighting & Resizable Body Viewer**
-<br>
-<img src="screenshots/body_viewer_json.png" width="800">
+| Provider | Format |
+|---|---|
+| OpenAI API | `{"choices":[{"delta":{"content":"..."}}]}` |
+| ChatGPT Web | JSON Patch delta encoding (`o: "append"`, `o: "patch"`) |
+| Claude API | `{"type":"content_block_delta","delta":{"text":"..."}}` |
+| Gemini API | `{"candidates":[{"content":{"parts":[{"text":"..."}]}}]}` |
+| Gemini Web | Google proprietary `)]}'` chunked format (cumulative snapshots) |
+| Custom | `{"answer":"..."}`, `{"text":"..."}`, plain text SSE |
 
-**HAR Diff Summary & Table**
-<br>
-<img src="screenshots/diff_summary.png" width="800">
+Handles base64-encoded bodies and multi-level JSON escaping automatically.
 
-**HAR Diff Left-vs-Right Detail Overlay**
-<br>
-<img src="screenshots/diff_detail.png" width="800">
+### AI Chat Analytics
 
-**Advanced Export Dropdown**
-<br>
-<img src="screenshots/export_dropdown.png" width="800">
+Evaluate AI chatbot performance from HAR captures:
 
-**AI Chat Assistant with Token Streaming**
-<br>
-<img src="screenshots/ai_chat.png" width="800">
+| Tab | What it shows |
+|---|---|
+| **Overview** | SSE request count, avg/P50/P95 TTFT, speed, tokens, quality pass rate |
+| **TTFT** | Time To First Token ranked list with color-coded bars |
+| **Speed** | Tokens/sec analysis with percentile stats |
+| **Compare** | Side-by-side table with best/worst highlighting |
+| **Quality** | Per-request checklist: HTTP 2xx, stream complete, no errors, TTFT < 3s, speed > 10 tok/s |
 
-## Keyboard & Mouse Shortcuts
+### Performance Insights
 
-| Action | Shortcut |
+7 analysis tabs: Overview (P50/P95/P99), Slowest requests, Largest responses, By Host, Status/Type distribution, Duplicates, Issues (missing cache, uncompressed, errors).
+
+### HAR Diff / Compare
+
+Load two files to compare. Classifies requests as added, removed, changed, or identical with duration and size deltas.
+
+### Export
+
+- **cURL Script** (.sh) — with headers and body
+- **Postman Collection** (.json) — v2.1 with response examples
+- **Fiddler AutoResponder** (.farx) — rules + .dat files as ZIP
+
+### AI Chat Assistant
+
+Chat with AI about your traffic data. Supports Claude, Gemini, ChatGPT, Grok, Azure with SSE streaming.
+
+### Body Viewer
+
+Resizable modal with format tabs: RAW, JSON (syntax-highlighted with line numbers), XML, HTML, Image, HEX, Decode B64, SSE.
+
+### Core
+
+- Waterfall timeline with zoom, scroll sync, measure tool
+- HAR and custom JSON format support
+- Request details: headers, body, timing breakdown
+- Thread grouping with color coding
+- Multi-select (Click, Ctrl+Click, Shift+Click, Ctrl+A)
+- Advanced filters: method, URI (text/regex), status, duration range, type
+- Dark theme throughout (including scrollbars)
+
+## Keyboard Shortcuts
+
+| Action | Key |
 |---|---|
 | Select row | `Click` |
-| Toggle selection | `Ctrl`+`Click` |
-| Range select | `Shift`+`Click` |
-| Select all | `Ctrl`+`A` |
-| Horizontal scroll | `Shift`+`Scroll` |
-| Zoom in/out | `+` / `-` |
-| Open request details | Click request ID |
+| Toggle selection | `Ctrl+Click` |
+| Range select | `Shift+Click` |
+| Select all | `Ctrl+A` |
+| Horizontal scroll | `Shift+Scroll` |
+| Zoom | `+` / `-` |
+| Open details | Click request ID |
+| Close panels | `Escape` |
 
-## Supported Formats
+## Supported Input Formats
 
-### 1. HAR (HTTP Archive)
+### HAR (HTTP Archive)
 
-Standard `.har` files as exported from browser DevTools. See the [HAR 1.2 spec](http://www.softwareishard.com/blog/har-12-spec/).
+Standard `.har` files from Chrome DevTools, Firefox, etc. See [HAR 1.2 spec](http://www.softwareishard.com/blog/har-12-spec/).
 
-See the [`samples/har/`](samples/har/) folder for example HAR files.
+### Custom JSON
 
-### 2. Custom JSON format
-
-The custom JSON format is designed to be lightweight and easy to generate and parse, with support for both inline content and external file references.  
-
-It is simplier than HAR allowing for easier generation and integration with non-standard tools that do not export HAR (you do not have to implement the full HAR spec.).  
-
-See the [`samples/custom/`](samples/custom/) folder for example JSON files.
-
-A JSON array of request objects:
+Lightweight format for custom instrumentation:
 
 ```json
 [
@@ -110,52 +160,29 @@ A JSON array of request objects:
     "beginResponseTimestamp": 1704067200150,
     "endResponseTimestamp": 1704067200200,
     "threadId": "main",
-    "requestHeaders": "Content-Type: application/json\nAuthorization: Bearer ...",
-    "responseHeaders": "Content-Type: application/json\nContent-Length: 512",
+    "requestHeaders": {"Content-Type": "application/json"},
+    "responseHeaders": {"Content-Type": "application/json"},
     "requestBodyChunks": ["{ \"name\": \"Alice\" }"],
     "responseBodyChunks": ["{ \"id\": 1, \"name\": \"Alice\" }"],
-    "requestBodyPath": "req_body_1.json",
-    "responseBodyPath": "res_body_1.json",
     "responseContentLength": 512
   }
 ]
 ```
 
-JSON Object:
-
-Wraps the array in an object with an optional base path for body files:
+Or wrapped with a base path for external body files:
 
 ```json
 {
   "requests_data_path": "C:/data/connections/",
-  "requests": [
-    { "id": 1, "uri": "http://localhost:3000/api/users", "..." : "..." }
-  ]
+  "requests": [...]
 }
 ```
 
-### Field Reference
+See [`samples/`](samples/) for examples.
 
-| Field | Description |
-|---|---|
-| `id` | Unique request identifier |
-| `uri` | Request URL |
-| `method` | HTTP method (GET, POST, etc.) |
-| `statusCode` | HTTP response status code |
-| `statusMessage` | HTTP response status text (e.g. "OK") |
-| `startRequestTimestamp` | Request start time (epoch ms) |
-| `beginResponseTimestamp` | First response byte time (epoch ms) |
-| `endResponseTimestamp` | Response complete time (epoch ms) |
-| `threadId` | Thread or connection identifier |
-| `requestHeaders` | Request headers as a newline-separated string |
-| `responseHeaders` | Response headers as a newline-separated string |
-| `requestBodyChunks` | Array of strings containing the request body |
-| `responseBodyChunks` | Array of strings containing the response body |
-| `requestBodyPath` | File path to the request body content |
-| `responseBodyPath` | File path to the response body content |
-| `responseContentLength` | Response body size in bytes |
+## Credits
 
-> **Note:** `requestBodyPath`/`responseBodyPath` and `requestBodyChunks[]`/`responseBodyChunks[]` are interchangeable. Chunks contain the actual body content inline. Paths are links to external files, useful for saving memory when bodies are large. When using paths, set `requests_data_path` in the object format to provide the base directory.
+Originally forked from [omega0verride/HAR-Viewer](https://github.com/omega0verride/HAR-Viewer).
 
 ## License
 

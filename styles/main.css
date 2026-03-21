@@ -3425,6 +3425,41 @@ h4.sse-heading, h5.sse-heading, h6.sse-heading { font-size: 14px; }
     line-height: 1.6;
 }
 
+/* Markdown table */
+.sse-md-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 13px;
+    border: 1px solid #3a3a4e;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.sse-md-table th {
+    background: #1a1a2e;
+    color: #a78bfa;
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid #3a3a4e;
+}
+
+.sse-md-table td {
+    padding: 8px 14px;
+    border-bottom: 1px solid #2a2a3e;
+    color: #ccc;
+    line-height: 1.5;
+}
+
+.sse-md-table tbody tr:hover {
+    background: rgba(167, 139, 250, 0.06);
+}
+
+.sse-md-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
 /* Events table */
 .sse-events-table {
     width: 100%;
@@ -3612,4 +3647,170 @@ h4.sse-heading, h5.sse-heading, h6.sse-heading { font-size: 14px; }
     white-space: pre-wrap;
     word-break: break-all;
     line-height: 1.5;
+}
+
+/* ===== AI Chat Analytics ===== */
+
+.ai-analytics-panel .insights-header-title {
+    color: #a78bfa;
+}
+
+/* TTFT cards */
+.aia-ttft-card {
+    background: #1e1e2e;
+    border: 1px solid #2a2a3e;
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin: 0 12px 8px 12px;
+    transition: background 0.15s;
+}
+
+.aia-ttft-card:hover {
+    background: #252540;
+}
+
+.aia-ttft-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.aia-ttft-value {
+    margin-left: auto;
+    font-weight: 600;
+    font-size: 13px;
+    font-family: monospace;
+}
+
+.aia-ttft-bar-track {
+    height: 6px;
+    background: #1a1a2a;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.aia-ttft-bar {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s;
+}
+
+.aia-ttft-bar.aia-fast { background: linear-gradient(90deg, #2e7d32, #81c784); }
+.aia-ttft-bar.aia-medium { background: linear-gradient(90deg, #e65100, #ffb74d); }
+.aia-ttft-bar.aia-slow { background: linear-gradient(90deg, #b71c1c, #e57373); }
+
+.aia-fast { color: #81c784; }
+.aia-medium { color: #ffb74d; }
+.aia-slow { color: #e57373; }
+
+.aia-ttft-meta {
+    display: flex;
+    gap: 16px;
+    font-size: 11px;
+    color: #777;
+}
+
+/* Compare table */
+.aia-compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.aia-compare-table th {
+    position: sticky;
+    top: 0;
+    background: #1a1a2e;
+    color: #a78bfa;
+    padding: 10px 10px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 1px solid #333;
+    z-index: 2;
+    white-space: nowrap;
+}
+
+.aia-compare-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #222;
+    color: #ccc;
+}
+
+.aia-compare-table tbody tr {
+    cursor: pointer;
+    transition: background 0.1s;
+}
+
+.aia-compare-table tbody tr:hover {
+    background: rgba(167, 139, 250, 0.08);
+}
+
+.aia-best { color: #81c784; font-weight: 600; }
+.aia-worst { color: #e57373; font-weight: 600; }
+
+/* Quality cards */
+.aia-quality-summary {
+    padding: 16px 16px 8px 16px;
+    font-size: 14px;
+}
+
+.aia-quality-card {
+    background: #1e1e2e;
+    border: 1px solid #2a2a3e;
+    border-radius: 6px;
+    margin: 0 12px 8px 12px;
+    overflow: hidden;
+}
+
+.aia-quality-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.aia-quality-header:hover {
+    background: #252540;
+}
+
+.aia-quality-score {
+    margin-left: auto;
+    font-weight: 600;
+    font-size: 13px;
+    font-family: monospace;
+}
+
+.aia-quality-card.collapsed .aia-quality-checks {
+    display: none;
+}
+
+.aia-quality-checks {
+    border-top: 1px solid #2a2a3e;
+    padding: 8px 14px;
+}
+
+.aia-check-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 0;
+    font-size: 12px;
+}
+
+.aia-check-pass { color: #81c784; font-weight: 600; min-width: 14px; }
+.aia-check-fail { color: #e57373; font-weight: 600; min-width: 14px; }
+
+.aia-check-label {
+    color: #ccc;
+    min-width: 180px;
+}
+
+.aia-check-detail {
+    color: #777;
+    font-family: monospace;
+    font-size: 11px;
 }
